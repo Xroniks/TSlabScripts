@@ -9,6 +9,7 @@
 
 using System;
 using System.Linq;
+using MoreLinq;
 using System.Collections.Generic;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -71,100 +72,118 @@ namespace TSLabScripts
             var indexBeginDayBar = GetIndexBarBeginDay(compressSource, indexCompressBar);
 
             // Поиск моделей на покупку и выставление для них ордеров
-            SearchBuyModel(compressSource, indexCompressBar, indexBeginDayBar);
+            var modelBuyList = SearchBuyModel(compressSource, indexCompressBar, indexBeginDayBar, compressChart);
+
+            if (modelBuyList.Any())
+            {
+                //modelBuyList = ValidateBuyModel(source, modelBuyList, bar);
+                foreach (Model model in modelBuyList)
+                {
+                    source.Positions.BuyIfGreater(bar + 1, 1, model.Value - 50, "buy_" + model.Value);
+                }
+            }
 
             // Поиск моделей на продажу и выставление для них ордеров
             //SearchSellModel(compressSource, bar, highPriceList, lowPriceList, compressChart);
 
-
         }
 
-        public void SearchBuyModel(ISecurity compressSource, int indexCompressBar, int indexBeginDayBar)
+        public List<Model> SearchBuyModel(ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, IGraphList compressChart)
         {
-            
-            
-            for (var indexPointA = bar - 1; indexPointA >= indexBarBeginDay && indexPointA >= 0; indexPointA--)
-            {
-                // Находим точку B
-                var rangeFindPointB = highPriceList.GetRange(indexPointA, bar - indexPointA + 1);
-                var highPricePointB = rangeFindPointB.Max();
-                var indexPointB = indexPointA + rangeFindPointB.IndexOf(highPricePointB);
+            List<Model> modelBuyList = new List<Model>();
 
-                // Корректируем точку A
-                var realRangePointA = lowPriceList.GetRange(indexPointA, indexPointB - indexPointA + 1);
-                var realLowPricePointA = realRangePointA.Min();
-                var realIncexPointA = indexPointA + realRangePointA.IndexOf(realLowPricePointA);
+            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
+            {
+                var pointB = compressSource.HighPrices.
+                    Select((value, index) => new { Value = value, Index = index }).
+                    Skip(indexPointA).
+                    Take(indexCompressBar - indexPointA + 1).
+                    MaxBy(item => item.Value);
+                
+                var realPointA = compressSource.LowPrices.
+                    Select((value, index) => new { Value = value, Index = index }).
+                    Skip(indexPointA).
+                    Take(pointB.Index - indexPointA + 1).
+                    MinBy(item => item.Value);
 
                 // Проверм размер фигуры A-B
-                var ab = highPricePointB - realLowPricePointA;
+                var ab = pointB.Value - realPointA.Value;
                 if (ab <= 400 || ab >= 1000) continue;
 
-                // Находим точку C
-                var rangeFindPointC = lowPriceList.GetRange(indexPointB + 1, bar - indexPointB);
-                if (rangeFindPointC.Count == 0) continue;
-                var lowPricePointC = rangeFindPointC.Min();
-                var indexPointC = indexPointB + rangeFindPointC.IndexOf(lowPricePointC);
+                var pointC = compressSource.LowPrices.
+                    Select((value, index) => new { Value = value, Index = index }).
+                    Skip(pointB.Index).
+                    Take(indexCompressBar - pointB.Index + 1).
+                    MinBy(item => item.Value);
 
                 // Проверям размер модели B-C
-                var bc = highPricePointB - lowPricePointC;
-                var ac = lowPricePointC - realLowPricePointA;
-                if (bc <= 389 || ac < 0) continue;
+                if (pointB.Value - pointC.Value <= 389 ||
+                    pointC.Value - realPointA.Value < 0) continue;
 
-                mainChart.SetColor(realIncexPointA, new Color(255,0,0));
-                mainChart.SetColor(indexPointB, new Color(0,255,0));
-                mainChart.SetColor(indexPointC, new Color(0,0,255));
+                //compressChart.SetColor(pointB.Index, new Color(0,255,0));
 
-                if (!(highPriceList.GetRange(indexPointC, bar - indexPointC).Max() >= highPricePointB - 50))
+                modelBuyList.Add(new Model
                 {
-                    source.Positions.BuyIfGreater(bar + 1, 1, highPricePointB - 50, "buy_" + highPricePointB);
-                }
-            }   
+                    Index = pointB.Index,
+                    Value = pointB.Value
+                });
+            }
+
+            return modelBuyList;
         }
 
-//        public void SearchSellModel(ISecurity source, int bar, List<double> highPriceList, List<double> lowPriceList, IGraphList mainChart)
-//        {
-//            // Не торгует на вечерней сессии
-//            if (source.Bars[bar].Date.TimeOfDay >= new TimeSpan(18, 40, 00)) return;
-//
-//            var indexBarBeginDay = GetIndexBarBeginDay(source, bar);
-//
-//            for (var indexPointA = bar - 1; indexPointA >= indexBarBeginDay && indexPointA >= 0; indexPointA--)
-//            {
-//                // Находим точку B
-//                var rangeFindPointB = lowPriceList.GetRange(indexPointA, bar - indexPointA + 1);
-//                var lowPricePointB = rangeFindPointB.Min();
-//                var indexPointB = indexPointA + rangeFindPointB.IndexOf(lowPricePointB);
-//
-//                // Корректируем точку A
-//                var realRangePointA = highPriceList.GetRange(indexPointA, indexPointB - indexPointA + 1);
-//                var realHighPricePointA = realRangePointA.Max();
-//                var realIncexPointA = indexPointA + realRangePointA.IndexOf(realHighPricePointA);
-//
-//                // Проверм размер фигуры A-B
-//                var ab = realHighPricePointA - lowPricePointB;
-//                if (ab <= 400 || ab >= 1000) continue;
-//
-//                // Находим точку C
-//                var rangeFindPointC = highPriceList.GetRange(indexPointB + 1, bar - indexPointB);
-//                if (rangeFindPointC.Count == 0) continue;
-//                var highPricePointC = rangeFindPointC.Max();
-//                var indexPointC = indexPointB + rangeFindPointC.IndexOf(highPricePointC);
-//
-//                // Проверям размер модели B-C
-//                var bc = highPricePointC - lowPricePointB;
-//                var ac = realHighPricePointA - highPricePointC;
-//                if (bc <= 389 || ac < 0) continue;
-//
-//                mainChart.SetColor(realIncexPointA, new Color(255, 0, 0));
-//                mainChart.SetColor(indexPointB, new Color(0, 255, 0));
-//                mainChart.SetColor(indexPointC, new Color(0, 0, 255));
-//
-//                if (!(highPriceList.GetRange(indexPointC, bar - indexPointC).Min() <= lowPricePointB + 50))
-//                {
-//                    source.Positions.SellIfLess(bar + 1, 1, lowPricePointB +50, "sell_" + lowPricePointB);
-//                }
-//            }
-//        }
+        //        public void SearchSellModel(ISecurity source, int bar, List<double> highPriceList, List<double> lowPriceList, IGraphList mainChart)
+        //        {
+        //            // Не торгует на вечерней сессии
+        //            if (source.Bars[bar].Date.TimeOfDay >= new TimeSpan(18, 40, 00)) return;
+        //
+        //            var indexBarBeginDay = GetIndexBarBeginDay(source, bar);
+        //
+        //            for (var indexPointA = bar - 1; indexPointA >= indexBarBeginDay && indexPointA >= 0; indexPointA--)
+        //            {
+        //                // Находим точку B
+        //                var rangeFindPointB = lowPriceList.GetRange(indexPointA, bar - indexPointA + 1);
+        //                var lowPricePointB = rangeFindPointB.Min();
+        //                var indexPointB = indexPointA + rangeFindPointB.IndexOf(lowPricePointB);
+        //
+        //                // Корректируем точку A
+        //                var realRangePointA = highPriceList.GetRange(indexPointA, indexPointB - indexPointA + 1);
+        //                var realHighPricePointA = realRangePointA.Max();
+        //                var realIncexPointA = indexPointA + realRangePointA.IndexOf(realHighPricePointA);
+        //
+        //                // Проверм размер фигуры A-B
+        //                var ab = realHighPricePointA - lowPricePointB;
+        //                if (ab <= 400 || ab >= 1000) continue;
+        //
+        //                // Находим точку C
+        //                var rangeFindPointC = highPriceList.GetRange(indexPointB + 1, bar - indexPointB);
+        //                if (rangeFindPointC.Count == 0) continue;
+        //                var highPricePointC = rangeFindPointC.Max();
+        //                var indexPointC = indexPointB + rangeFindPointC.IndexOf(highPricePointC);
+        //
+        //                // Проверям размер модели B-C
+        //                var bc = highPricePointC - lowPricePointB;
+        //                var ac = realHighPricePointA - highPricePointC;
+        //                if (bc <= 389 || ac < 0) continue;
+        //
+        //                mainChart.SetColor(realIncexPointA, new Color(255, 0, 0));
+        //                mainChart.SetColor(indexPointB, new Color(0, 255, 0));
+        //                mainChart.SetColor(indexPointC, new Color(0, 0, 255));
+        //
+        //                if (!(highPriceList.GetRange(indexPointC, bar - indexPointC).Min() <= lowPricePointB + 50))
+        //                {
+        //                    source.Positions.SellIfLess(bar + 1, 1, lowPricePointB +50, "sell_" + lowPricePointB);
+        //                }
+        //            }
+        //        }
+
+        private List<Model> ValidateBuyModel(ISecurity source, List<Model> modelBuyList, int bar)
+        {
+            var max = source.HighPrices.Skip(source.Bars.Count - bar).Take(bar).Max();
+
+            return modelBuyList.Where(model => model.Value - 50 > max).
+                Select(model => new Model { Index = model.Index, Value = model.Value }).ToList();
+        }
 
         public void SearchActivePosition(ISecurity source, int bar)
         {
@@ -205,7 +224,7 @@ namespace TSLabScripts
 
         public int GetIndexBarBeginDay(ISecurity compressSource, int indexCompressBar)
         {
-            return ((int)compressSource.Bars[indexCompressBar].Date.TimeOfDay.TotalMinutes - 600)/5;
+            return ((int)compressSource.Bars[indexCompressBar].Date.TimeOfDay.TotalMinutes - 600)/5 - indexCompressBar;
         }
 
         public bool GetValidTimeFrame(IContext ctx, ISecurity source)
@@ -224,5 +243,16 @@ namespace TSLabScripts
             }
             return tempbar / 60;
         }
+
+        public int GetCountValidateBar(int bar)
+        {
+            return bar % 60;
+        }
+    }
+
+    public struct Model
+    {
+        public int Index;
+        public double Value;
     }
 }
