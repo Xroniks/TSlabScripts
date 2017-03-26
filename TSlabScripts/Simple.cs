@@ -23,6 +23,8 @@ namespace TSLabScripts
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 00, 00);
+        public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
+        public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -98,15 +100,15 @@ namespace TSLabScripts
                     item.Bar.Date.TimeOfDay == TimeBeginBar &&
                     item.Bar.Date.Day == dateActualBar.Day &&
                     item.Bar.Date.Month == dateActualBar.Month &&
-                    item.Bar.Date.Year == dateActualBar.Year);
+                    item.Bar.Date.Year == dateActualBar.Year).Index;
 
-                var indexCompressBar = ((int)totalSecondsActualBar + 5 - 36000) / 300 - 1 + indexBeginDayBar.Index;
+                int indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
 
                 // Поиск моделей на покупку
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar.Index, actualBar, buySignal);
+                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
 
                 // Поиск моделей на продажу и выставление для них ордеров
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar.Index, actualBar, sellSignal);
+                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
             }
 
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
@@ -310,6 +312,18 @@ namespace TSLabScripts
             if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
             ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
             return false;
+        }
+
+        private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
+        {
+            var indexCompressBar = indexBeginDayBar;
+
+            while (compressSource.Bars[indexCompressBar].Date < dateActualBar)
+            {
+                indexCompressBar++;
+            }
+
+            return indexCompressBar - 1;
         }
     }
 
