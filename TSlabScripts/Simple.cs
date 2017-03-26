@@ -15,6 +15,11 @@ namespace TSLabScripts
         /// Выставить "1" если используются исторические данные
         /// </summary>
         public OptimProperty HistorySource = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 1);
+        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 1);
+        public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 1);
+        public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 1);
+        public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 1);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 00, 00);
@@ -110,7 +115,7 @@ namespace TSLabScripts
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
                 foreach (TradingModel model in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, 1, model.Value - 50, "buy_" + model.Value);
+                    source.Positions.BuyIfGreater(actualBar + 1, 1, model.Value - ScopeDelta, "buy_" + model.Value);
                 }
                 ctx.StoreObject("BuyModel", buyList);
             }
@@ -121,7 +126,7 @@ namespace TSLabScripts
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
                 foreach (TradingModel model in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, 1, model.Value + 50, "sell_" + model.Value);
+                    source.Positions.SellIfLess(actualBar + 1, 1, model.Value + ScopeDelta, "sell_" + model.Value);
                 }
                 ctx.StoreObject("SellList", sellList);
             }
@@ -150,7 +155,7 @@ namespace TSLabScripts
 
                 // Проверм размер фигуры A-B
                 var ab = pointB.Value - realPointA.Value;
-                if (ab <= 390 || ab >= 1000) continue;
+                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
                 var pointC = compressSource.LowPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -162,8 +167,18 @@ namespace TSLabScripts
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
-                if (pointB.Value - pointC.Value <= 390 ||
+                if (pointB.Value - pointC.Value <= LengthSegmentBC ||
                     pointC.Value - realPointA.Value < 0) continue;
+
+                // Проверка на пересечение
+                if (indexCompressBar != pointC.Index)
+                { 
+                    var validateMax = compressSource.HighPrices.
+                        Skip(pointC.Index + 1).
+                        Take(indexCompressBar - pointC.Index).
+                        Max();
+                    if (pointB.Value - ScopeDelta <= validateMax) continue;
+                }
 
                 modelBuyList.Add(new TradingModel
                 {
@@ -199,7 +214,7 @@ namespace TSLabScripts
 
                 // Проверм размер фигуры A-B
                 var ab = realPointA.Value - pointB.Value;
-                if (ab <= 390 || ab >= 1000) continue;
+                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
                 var pointC = compressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -211,8 +226,18 @@ namespace TSLabScripts
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
-                if (pointC.Value - pointB.Value <= 390 ||
+                if (pointC.Value - pointB.Value <= LengthSegmentBC ||
                     realPointA.Value - pointC.Value < 0) continue;
+
+                // Проверка на пересечение
+                if (indexCompressBar != pointC.Index)
+                {
+                    var validateMin = compressSource.LowPrices.
+                        Skip(pointC.Index + 1).
+                        Take(indexCompressBar - pointC.Index).
+                        Min();
+                    if (pointB.Value + ScopeDelta >= validateMin) continue;
+                }
 
                 modelSellList.Add(new TradingModel
                 {
@@ -234,7 +259,7 @@ namespace TSLabScripts
                 lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
             }
 
-            return modelBuyList.Where(model => model.Value - 50 > lastMax).ToList();
+            return modelBuyList.Where(model => model.Value - ScopeDelta > lastMax).ToList();
         }
 
         private List<TradingModel> ValidateSellModel(ISecurity source, List<TradingModel> modelSellList, int actualBar)
@@ -246,7 +271,7 @@ namespace TSLabScripts
                 lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
             }
 
-            return modelSellList.Where(model => model.Value + 50 < lastMin).ToList();
+            return modelSellList.Where(model => model.Value + ScopeDelta < lastMin).ToList();
         }
 
         public void SearchActivePosition(ISecurity source, int actualBar)
@@ -259,12 +284,12 @@ namespace TSLabScripts
                 switch (arr[0])
                 {
                     case "buy":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + 100, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - 300, "closeStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfite, "closeProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, "closeStop");
                         break;
                     case "sell":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - 100, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + 300, "closeStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfite, "closeProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStope, "closeStop");
                         break;
                 }
             }
