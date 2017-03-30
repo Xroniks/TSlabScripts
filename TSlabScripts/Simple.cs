@@ -15,11 +15,11 @@ namespace TSLabScripts
         /// Выставить "1" если используются исторические данные
         /// </summary>
         public OptimProperty HistorySource = new OptimProperty(0, 0, 1, 1);
-        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 1);
-        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 1);
-        public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 1);
-        public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 1);
-        public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 1);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 00, 00);
