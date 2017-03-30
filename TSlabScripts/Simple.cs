@@ -20,11 +20,14 @@ namespace TSLabScripts
         public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
+        public static OptimProperty DeltaModelSpan = new OptimProperty(120, double.MinValue, double.MaxValue, 1);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
-        public TimeSpan TimeBeginBar = new TimeSpan(10, 00, 00);
+        public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
+        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
+        public TimeSpan DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -72,6 +75,8 @@ namespace TSLabScripts
 
         public void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
         {
+            if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
+            
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
             if (source.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
             {
@@ -97,7 +102,7 @@ namespace TSLabScripts
                 var indexBeginDayBar = compressSource.Bars
                     .Select((bar, index) => new BarIndexModel { Index = index, Bar = bar })
                     .Last(item =>
-                    item.Bar.Date.TimeOfDay == TimeBeginBar &&
+                    item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
                     item.Bar.Date.Day == dateActualBar.Day &&
                     item.Bar.Date.Month == dateActualBar.Month &&
                     item.Bar.Date.Year == dateActualBar.Year).Index;
@@ -182,6 +187,10 @@ namespace TSLabScripts
                     if (pointB.Value - ScopeDelta <= validateMax) continue;
                 }
 
+                // Проверка на время модели
+                if (compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
+                    continue;
+
                 modelBuyList.Add(new TradingModel
                 {
                     Value = pointB.Value
@@ -241,6 +250,10 @@ namespace TSLabScripts
                     if (pointB.Value + ScopeDelta >= validateMin) continue;
                 }
 
+                // Проверка на время модели
+                if (compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
+                    continue;
+
                 modelSellList.Add(new TradingModel
                 {
                     Value = pointB.Value
@@ -256,7 +269,7 @@ namespace TSLabScripts
         {
             double lastMax = double.MinValue;
 
-            for (var i = actualBar; (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
             {
                 lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
             }
@@ -268,7 +281,7 @@ namespace TSLabScripts
         {
             double lastMin = double.MaxValue;
 
-            for (var i = actualBar; (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
             {
                 lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
             }
