@@ -330,13 +330,13 @@ namespace TSLabScripts
         private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
             var indexCompressBar = indexBeginDayBar;
-
-            while (compressSource.Bars[indexCompressBar].Date < dateActualBar)
+            var tempTime = dateActualBar - FiveMinutes - FiveSeconds;
+            while (compressSource.Bars[indexCompressBar].Date < tempTime)
             {
                 indexCompressBar++;
             }
 
-            return indexCompressBar - 1;
+            return indexCompressBar;
         }
     }
 
