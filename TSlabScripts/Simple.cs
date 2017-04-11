@@ -11,16 +11,16 @@ namespace TSLabScripts
 {
     public class Simple : IExternalScript
     {
-        /// <summary>
-        /// Выставить "1" если используются исторические данные
-        /// </summary>
         public OptimProperty HistorySource = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
+        public OptimProperty Value = new OptimProperty(1, 0, 100, 1);
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
         public static OptimProperty DeltaModelSpan = new OptimProperty(120, double.MinValue, double.MaxValue, 1);
+        public static OptimProperty DeltaPositionSpan = new OptimProperty(120, double.MinValue, double.MaxValue, 1);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
@@ -28,6 +28,7 @@ namespace TSLabScripts
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
         public TimeSpan DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
+        public TimeSpan DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -122,7 +123,7 @@ namespace TSLabScripts
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
                 foreach (TradingModel model in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, 1, model.Value - ScopeDelta, "buy_" + model.Value);
+                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.Value - ScopeDelta, Slippage, "buy_" + model.Value);
                 }
                 ctx.StoreObject("BuyModel", buyList);
             }
@@ -133,7 +134,7 @@ namespace TSLabScripts
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
                 foreach (TradingModel model in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, 1, model.Value + ScopeDelta, "sell_" + model.Value);
+                    source.Positions.SellIfLess(actualBar + 1, Value, model.Value + ScopeDelta, Slippage, "sell_" + model.Value);
                 }
                 ctx.StoreObject("SellList", sellList);
             }
@@ -295,16 +296,21 @@ namespace TSLabScripts
 
             foreach (var position in positionList)
             {
+                if (source.Bars[actualBar].Date - position.EntryBar.Date >= DeltaPositionTimeSpan)
+                {
+                    position.CloseAtMarket(actualBar + 1, "closeAtTime");
+                    continue;
+                }
                 var arr = position.EntrySignalName.Split('_');
                 switch (arr[0])
                 {
                     case "buy":
                         position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfite, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, "closeStop");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, Slippage, "closeStop");
                         break;
                     case "sell":
                         position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfite, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStope, "closeStop");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStope, Slippage, "closeStop");
                         break;
                 }
             }
