@@ -11,7 +11,6 @@ namespace TSLabScripts
 {
     public class Simple : IExternalScript
     {
-        public OptimProperty HistorySource = new OptimProperty(0, 0, 1, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 1);
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
@@ -52,19 +51,11 @@ namespace TSLabScripts
                 sellSignal.Add(0);
             }
 
-            if (HistorySource.Value == 1)
+            for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                ctx.Log("Исторические данные", new Color(), true);
-                for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
-                {
-                    Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal);
-                }
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal);
             }
-            else
-            {
-                Trading(ctx, source, compressSource, source.Bars.Count - 1, buySignal, sellSignal);
-            }
-
+            
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
             buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
