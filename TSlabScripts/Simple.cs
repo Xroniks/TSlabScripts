@@ -29,6 +29,12 @@ namespace TSLabScripts
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
+            //Для оптимизации
+            if (LengthSegmentAB < LengthSegmentBC)
+            {
+                return;
+            }
+
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
 
