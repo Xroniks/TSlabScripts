@@ -11,13 +11,15 @@ namespace TSLabScripts
 {
     public class Simple : IExternalScript
     {
-        public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 5000, 10);
-        public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 5000, 10);
+        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
+        public OptimProperty Value = new OptimProperty(1, 0, 100, 10);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1700, 0, 5000, 10);
+        public OptimProperty LengthSegmentBC = new OptimProperty(550, 0, 5000, 10);
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 200, 10);
         public OptimProperty ScopeProfite = new OptimProperty(100, 0, 500, 10);
         public OptimProperty ScopeStope = new OptimProperty(300, 0, 1000, 10);
-        public static OptimProperty DeltaModelSpanSeconds = new OptimProperty(36000, 0, 86400, 5);
-        public static OptimProperty DeltaPositionSpanSeconds = new OptimProperty(36000, 0, 86400, 5);
+        public static OptimProperty DeltaModelSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
+        public static OptimProperty DeltaPositionSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
@@ -30,7 +32,7 @@ namespace TSLabScripts
         public virtual void Execute(IContext ctx, ISecurity source)
         {
             //Для оптимизации
-            if (LengthSegmentAB < LengthSegmentBC)
+            if (ctx.IsOptimization && LengthSegmentAB < LengthSegmentBC)
             {
                 return;
             }
@@ -177,8 +179,11 @@ namespace TSLabScripts
                 }
 
                 // Проверка на время модели
-                if (compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
+                if (DeltaModelTimeSpan != new TimeSpan(0, 0, 0) &&
+                    compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
+                {
                     continue;
+                }
 
                 modelBuyList.Add(new TradingModel
                 {
@@ -284,7 +289,8 @@ namespace TSLabScripts
 
             foreach (var position in positionList)
             {
-                if (source.Bars[actualBar].Date - position.EntryBar.Date >= DeltaPositionTimeSpan)
+                if (DeltaPositionTimeSpan != new TimeSpan(0, 0, 0) &&
+                    source.Bars[actualBar].Date - position.EntryBar.Date >= DeltaPositionTimeSpan)
                 {
                     position.CloseAtMarket(actualBar + 1, "closeAtTime");
                     continue;
