@@ -94,14 +94,7 @@ namespace TSLabScripts
             if ((totalSecondsActualBar + 5) % 300 == 0)
             {
                 var dateActualBar = source.Bars[actualBar].Date;
-
-                var indexBeginDayBar = compressSource.Bars
-                    .Select((bar, index) => new BarIndexModel { Index = index, Bar = bar })
-                    .Last(item =>
-                    item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
-                    item.Bar.Date.Day == dateActualBar.Day &&
-                    item.Bar.Date.Month == dateActualBar.Month &&
-                    item.Bar.Date.Year == dateActualBar.Year).Index;
+                int indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
 
                 int indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
 
@@ -339,12 +332,33 @@ namespace TSLabScripts
 
             return indexCompressBar;
         }
-    }
 
-    public class BarIndexModel
-    {
-        public int Index { get; set; }
-        public Bar Bar { get; set; }
+        private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
+        {
+            do
+            {
+                int indexBeginDayBar;
+
+                try
+                {
+                    indexBeginDayBar = compressSource.Bars
+                        .Select((bar, index) => new {Index = index, Bar = bar})
+                        .Last(item =>
+                            item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
+                            item.Bar.Date.Day == dateActualBar.Day &&
+                            item.Bar.Date.Month == dateActualBar.Month &&
+                            item.Bar.Date.Year == dateActualBar.Year).Index;
+                }
+                catch (Exception e)
+                {
+                    TimeBeginDayBar = TimeBeginDayBar.Add(FiveMinutes);
+                    continue;
+                }
+
+                return indexBeginDayBar;
+
+            } while (true);
+        }
     }
 
     public struct TradingModel
