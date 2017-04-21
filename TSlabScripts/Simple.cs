@@ -247,7 +247,9 @@ namespace TSLabScripts
                 // Проверка на время модели
                 if (DeltaModelTimeSpan != new TimeSpan(0, 0, 0) &&
                     compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
+                {
                     continue;
+                }
 
                 modelSellList.Add(new TradingModel
                 {
