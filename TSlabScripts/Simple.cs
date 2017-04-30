@@ -13,8 +13,9 @@ namespace TSLabScripts
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 10);
-        public OptimProperty LengthSegmentAB = new OptimProperty(1700, 0, 5000, 10);
-        public OptimProperty LengthSegmentBC = new OptimProperty(550, 0, 5000, 10);
+        public OptimProperty LengthSegmentAB = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
+        public OptimProperty MinLengthSegmentBC = new OptimProperty(550, 0, 5000, 10);
+        public OptimProperty MaxLengthSegmentBC = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 200, 10);
         public OptimProperty ScopeProfite = new OptimProperty(100, 0, 500, 10);
         public OptimProperty ScopeStope = new OptimProperty(300, 0, 1000, 10);
@@ -32,7 +33,7 @@ namespace TSLabScripts
         public virtual void Execute(IContext ctx, ISecurity source)
         {
             //Для оптимизации
-            if (ctx.IsOptimization && LengthSegmentAB < LengthSegmentBC)
+            if (ctx.IsOptimization && LengthSegmentAB < MinLengthSegmentBC)
             {
                 return;
             }
@@ -149,11 +150,17 @@ namespace TSLabScripts
                     MinBy(item => item.Value);
 
                 // Точки A и B не могут быть на одном баре
-                if (pointB.Index == realPointA.Index) continue;
+                if (pointB.Index == realPointA.Index)
+                {
+                    continue;
+                }
 
                 // Проверм размер фигуры A-B
                 var ab = pointB.Value - realPointA.Value;
-                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+                if (ab <= MinLengthSegmentBC || (LengthSegmentAB != 0 && ab >= LengthSegmentAB))
+                {
+                    continue;
+                }
 
                 var pointC = compressSource.LowPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -165,8 +172,12 @@ namespace TSLabScripts
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
-                if (pointB.Value - pointC.Value <= LengthSegmentBC ||
-                    pointC.Value - realPointA.Value < 0) continue;
+                if (pointB.Value - pointC.Value <= MinLengthSegmentBC
+                    || (MaxLengthSegmentBC != 0 && pointB.Value - pointC.Value >= MaxLengthSegmentBC)
+                    || pointC.Value - realPointA.Value < 0)
+                {
+                    continue;
+                }
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -215,11 +226,17 @@ namespace TSLabScripts
                     MaxBy(item => item.Value);
 
                 // Точки A и B не могут быть на одном баре
-                if (pointB.Index == realPointA.Index) continue;
+                if (pointB.Index == realPointA.Index)
+                {
+                    continue;
+                }
 
                 // Проверм размер фигуры A-B
                 var ab = realPointA.Value - pointB.Value;
-                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+                if (ab <= MinLengthSegmentBC || (LengthSegmentAB == 0 && ab >= LengthSegmentAB))
+                {
+                    continue;
+                }
 
                 var pointC = compressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -231,8 +248,12 @@ namespace TSLabScripts
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
-                if (pointC.Value - pointB.Value <= LengthSegmentBC ||
-                    realPointA.Value - pointC.Value < 0) continue;
+                if (pointC.Value - pointB.Value <= MinLengthSegmentBC
+                    || (MaxLengthSegmentBC != 0 && pointC.Value - pointB.Value >= MaxLengthSegmentBC)
+                    || realPointA.Value - pointC.Value < 0)
+                {
+                    continue;
+                }
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
