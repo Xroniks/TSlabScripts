@@ -233,7 +233,7 @@ namespace TSLabScripts
 
                 // Проверм размер фигуры A-B
                 var ab = realPointA.Value - pointB.Value;
-                if (ab <= MinLengthSegmentBC || (LengthSegmentAB == 0 && ab >= LengthSegmentAB))
+                if (ab <= MinLengthSegmentBC || (LengthSegmentAB != 0 && ab >= LengthSegmentAB))
                 {
                     continue;
                 }
