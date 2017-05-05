@@ -50,8 +50,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SimpleNew.cs" />
-    <Compile Include="Simple.cs" />
+    <Compile Include="Simple_02.cs" />
+    <Compile Include="Simple_01.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

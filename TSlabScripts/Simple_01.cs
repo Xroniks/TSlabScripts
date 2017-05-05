@@ -9,7 +9,7 @@ using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class Simple : IExternalScript
+    public class Simple_01 : IExternalScript
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 10);
@@ -391,8 +391,8 @@ namespace TSLabScripts
         }
     }
 
-    public struct TradingModel
-    {
-        public double Value { get; set; }
-    }
+//    public struct TradingModel
+//    {
+//        public double Value { get; set; }
+//    }
 }

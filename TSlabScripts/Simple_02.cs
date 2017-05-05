@@ -9,16 +9,19 @@ using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class Simple : IExternalScript
+    public class Simple_02 : IExternalScript
     {
-        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
-        public OptimProperty Value = new OptimProperty(1, 0, 100, 10);
+        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10); // Проскальзывание
+        public OptimProperty Value = new OptimProperty(1, 0, 100, 10); // Колличество контрактов
+
         public OptimProperty LengthSegmentAB = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
-        public OptimProperty MinLengthSegmentBC = new OptimProperty(550, 0, 5000, 10);
+        public OptimProperty MinLengthSegmentBC = new OptimProperty(300, 0, 5000, 10);
         public OptimProperty MaxLengthSegmentBC = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
-        public OptimProperty ScopeDelta = new OptimProperty(50, 0, 200, 10);
-        public OptimProperty ScopeProfite = new OptimProperty(100, 0, 500, 10);
-        public OptimProperty ScopeStope = new OptimProperty(300, 0, 1000, 10);
+
+        public OptimProperty MultyplayDelta = new OptimProperty(0.1, 0, 1, 0.01);
+        public OptimProperty MultyplayProfit = new OptimProperty(0.2, 0, 1, 0.01);
+        public OptimProperty MultyplayStop = new OptimProperty(0.6, 0, 1, 0.01);
+
         public static OptimProperty DeltaModelSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
         public static OptimProperty DeltaPositionSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
 
@@ -32,12 +35,6 @@ namespace TSLabScripts
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
-            //Для оптимизации
-            if (ctx.IsOptimization && LengthSegmentAB < MinLengthSegmentBC)
-            {
-                return;
-            }
-
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
 
@@ -49,7 +46,7 @@ namespace TSLabScripts
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
-
+            // Генерируем пустые последовательности для дальнейшего заполнения сигналами
             var buySignal = new List<double>();
             var sellSignal = new List<double>();
             for (int i = 0; i < source.Bars.Count; i++)
@@ -58,11 +55,13 @@ namespace TSLabScripts
                 sellSignal.Add(0);
             }
 
+            // Цикл для торговли
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
                 Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal);
             }
             
+            // Отображение последовательностей с моделями (заполняются при поиске моделей)
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
             buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
@@ -74,6 +73,7 @@ namespace TSLabScripts
 
         public void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
         {
+            // Не торговать ранее 10:30, есть исторические данные с более ранними тиками
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
@@ -86,14 +86,14 @@ namespace TSLabScripts
                 return;
             }
 
-            // Посик активных позиций
+            // Посик активных позиций и выставление по ним стопов
             if (source.Positions.ActivePositionCount > 0)
             {
                 SearchActivePosition(source, actualBar);
             }
 
+            // Расчет модели происходит только на последнем пятисекундном баре в пятиминутном баре (пересчет один раз в пять минут)
             var totalSecondsActualBar = source.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
-
             if ((totalSecondsActualBar + 5) % 300 == 0)
             {
                 var dateActualBar = source.Bars[actualBar].Date;
@@ -101,13 +101,12 @@ namespace TSLabScripts
 
                 int indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
 
-                // Поиск моделей на покупку
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
 
-                // Поиск моделей на продажу и выставление для них ордеров
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
             }
 
+            // Читаем из кеша список моделей и выставляем ордера для существующих моделей
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
@@ -351,6 +350,9 @@ namespace TSLabScripts
             return false;
         }
 
+        /// <summary>
+        /// Ищет индекс, которому 
+        /// </summary>
         private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
             var indexCompressBar = indexBeginDayBar;
@@ -363,6 +365,9 @@ namespace TSLabScripts
             return indexCompressBar;
         }
 
+        /// <summary>
+        /// Ищет индекс первого бара текущего дня, начинает искать с 10:00, если такого нет, то добавляет пять минут и снова ищет.
+        /// </summary>
         private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
         {
             do
@@ -394,5 +399,11 @@ namespace TSLabScripts
     public struct TradingModel
     {
         public double Value { get; set; }
+
+        public double EnterPrice { get; set; }
+
+        public double ProfitPrice { get; set; }
+
+        public double StopPrice { get; set; }
     }
 }
