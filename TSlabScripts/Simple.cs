@@ -2,6 +2,7 @@
 using System.Linq;
 using MoreLinq;
 using System.Collections.Generic;
+using TSlabScripts;
 using TSLab.DataSource;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -9,16 +10,19 @@ using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class Simple_01 : IExternalScript
+    public class Simple : IExternalScript
     {
-        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
-        public OptimProperty Value = new OptimProperty(1, 0, 100, 10);
+        public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10); // Проскальзывание
+        public OptimProperty Value = new OptimProperty(1, 0, 100, 10); // Колличество контрактов
+
         public OptimProperty LengthSegmentAB = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
-        public OptimProperty MinLengthSegmentBC = new OptimProperty(550, 0, 5000, 10);
+        public OptimProperty MinLengthSegmentBC = new OptimProperty(300, 0, 5000, 10);
         public OptimProperty MaxLengthSegmentBC = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
-        public OptimProperty ScopeDelta = new OptimProperty(50, 0, 200, 10);
-        public OptimProperty ScopeProfite = new OptimProperty(100, 0, 500, 10);
-        public OptimProperty ScopeStope = new OptimProperty(300, 0, 1000, 10);
+
+        public OptimProperty MultyplayDelta = new OptimProperty(0.1, 0, 1, 0.01);
+        public OptimProperty MultyplayProfit = new OptimProperty(0.2, 0, 1, 0.01);
+        public OptimProperty MultyplayStop = new OptimProperty(0.6, 0, 1, 0.01);
+
         public static OptimProperty DeltaModelSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
         public static OptimProperty DeltaPositionSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
 
@@ -32,12 +36,6 @@ namespace TSLabScripts
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
-            //Для оптимизации
-            if (ctx.IsOptimization && LengthSegmentAB < MinLengthSegmentBC)
-            {
-                return;
-            }
-
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
 
@@ -49,7 +47,7 @@ namespace TSLabScripts
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
-
+            // Генерируем пустые последовательности для дальнейшего заполнения сигналами
             var buySignal = new List<double>();
             var sellSignal = new List<double>();
             for (int i = 0; i < source.Bars.Count; i++)
@@ -58,11 +56,13 @@ namespace TSLabScripts
                 sellSignal.Add(0);
             }
 
+            // Цикл для торговли
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
                 Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal);
             }
             
+            // Отображение последовательностей с моделями (заполняются при поиске моделей)
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
             buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
@@ -74,6 +74,7 @@ namespace TSLabScripts
 
         public void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
         {
+            // Не торговать ранее 10:30, есть исторические данные с более ранними тиками
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
@@ -86,35 +87,33 @@ namespace TSLabScripts
                 return;
             }
 
-            // Посик активных позиций
+            // Посик активных позиций и выставление по ним стопов
             if (source.Positions.ActivePositionCount > 0)
             {
                 SearchActivePosition(source, actualBar);
             }
 
-            var totalSecondsActualBar = source.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
-
-            if ((totalSecondsActualBar + 5) % 300 == 0)
+            // Расчет модели происходит только на последнем пятисекундном баре в пятиминутном баре (пересчет один раз в пять минут)
+            if (IsClosedBar(source.Bars[actualBar]))
             {
                 var dateActualBar = source.Bars[actualBar].Date;
                 int indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
 
                 int indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
 
-                // Поиск моделей на покупку
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
 
-                // Поиск моделей на продажу и выставление для них ордеров
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
             }
 
+            // Читаем из кеша список моделей и выставляем ордера для существующих моделей
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
-                foreach (TradingModel model in buyList)
+                foreach (var model in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.Value - ScopeDelta, Slippage, "buy_" + model.Value);
+                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, "buy_" + model.GetNamePosition);
                 }
                 ctx.StoreObject("BuyModel", buyList);
             }
@@ -123,9 +122,9 @@ namespace TSLabScripts
             if (modelSellList.Any())
             {
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
-                foreach (TradingModel model in sellList)
+                foreach (var model in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, Value, model.Value + ScopeDelta, Slippage, "sell_" + model.Value);
+                    source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
                 }
                 ctx.StoreObject("SellList", sellList);
             }
@@ -171,13 +170,17 @@ namespace TSLabScripts
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
 
+
+                var bc = pointB.Value - pointC.Value;
                 // Проверям размер модели B-C
-                if (pointB.Value - pointC.Value <= MinLengthSegmentBC
-                    || (MaxLengthSegmentBC != 0 && pointB.Value - pointC.Value >= MaxLengthSegmentBC)
+                if (bc <= MinLengthSegmentBC
+                    || (MaxLengthSegmentBC != 0 && bc >= MaxLengthSegmentBC)
                     || pointC.Value - realPointA.Value < 0)
                 {
                     continue;
                 }
+
+                var model = GetNewBuyTradingModel(pointB.Value, bc);
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -186,7 +189,7 @@ namespace TSLabScripts
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Max();
-                    if (pointB.Value - ScopeDelta <= validateMax) continue;
+                    if (model.EnterPrice <= validateMax) continue;
                 }
 
                 // Проверка на время модели
@@ -196,10 +199,7 @@ namespace TSLabScripts
                     continue;
                 }
 
-                modelBuyList.Add(new TradingModel
-                {
-                    Value = pointB.Value
-                });
+                modelBuyList.Add(model);
 
                 buySignal[actualBar] = 1;
             }
@@ -248,12 +248,15 @@ namespace TSLabScripts
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
-                if (pointC.Value - pointB.Value <= MinLengthSegmentBC
-                    || (MaxLengthSegmentBC != 0 && pointC.Value - pointB.Value >= MaxLengthSegmentBC)
+                var bc = pointC.Value - pointB.Value;
+                if (bc <= MinLengthSegmentBC
+                    || (MaxLengthSegmentBC != 0 && bc >= MaxLengthSegmentBC)
                     || realPointA.Value - pointC.Value < 0)
                 {
                     continue;
                 }
+
+                var model = GetNewSellTradingModel(pointB.Value, bc);
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -262,7 +265,7 @@ namespace TSLabScripts
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Min();
-                    if (pointB.Value + ScopeDelta >= validateMin) continue;
+                    if (model.EnterPrice >= validateMin) continue;
                 }
 
                 // Проверка на время модели
@@ -272,10 +275,7 @@ namespace TSLabScripts
                     continue;
                 }
 
-                modelSellList.Add(new TradingModel
-                {
-                    Value = pointB.Value
-                });
+                modelSellList.Add(model);
 
                 sellSignal[actualBar] = 1;
             }
@@ -285,26 +285,26 @@ namespace TSLabScripts
 
         public List<TradingModel> ValidateBuyModel(ISecurity source, List<TradingModel> modelBuyList, int actualBar)
         {
-            double lastMax = double.MinValue;
+            var lastMax = double.MinValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
                 lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
             }
 
-            return modelBuyList.Where(model => model.Value - ScopeDelta > lastMax).ToList();
+            return modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
         }
 
         private List<TradingModel> ValidateSellModel(ISecurity source, List<TradingModel> modelSellList, int actualBar)
         {
-            double lastMin = double.MaxValue;
+            var lastMin = double.MaxValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
                 lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
             }
 
-            return modelSellList.Where(model => model.Value + ScopeDelta < lastMin).ToList();
+            return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
         public void SearchActivePosition(ISecurity source, int actualBar)
@@ -323,12 +323,12 @@ namespace TSLabScripts
                 switch (arr[0])
                 {
                     case "buy":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfite, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, Slippage, "closeStop");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Slippage, "closeStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
                         break;
                     case "sell":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfite, "closeProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStope, Slippage, "closeStop");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Slippage, "closeStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
                         break;
                 }
             }
@@ -389,10 +389,33 @@ namespace TSLabScripts
 
             } while (true);
         }
-    }
 
-//    public struct TradingModel
-//    {
-//        public double Value { get; set; }
-//    }
+        private static bool IsClosedBar(Bar bar)
+        {
+            return (bar.Date.TimeOfDay.TotalSeconds + 5) % 300 == 0;
+        }
+
+
+        private TradingModel GetNewBuyTradingModel(double value, double bc)
+        {
+            return new TradingModel
+            {
+                Value = value,
+                EnterPrice = value - bc * MultyplayDelta,
+                StopPrice = value - bc * MultyplayStop,
+                ProfitPrice = value + bc * MultyplayProfit,
+            };
+        }
+
+        private TradingModel GetNewSellTradingModel(double value, double bc)
+        {
+            return new TradingModel
+            {
+                Value = value,
+                EnterPrice = value + bc * MultyplayDelta,
+                StopPrice = value + bc * MultyplayStop,
+                ProfitPrice = value - bc * MultyplayProfit,
+            };
+        }
+    }
 }
