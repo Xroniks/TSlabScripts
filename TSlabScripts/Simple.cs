@@ -2,7 +2,6 @@
 using System.Linq;
 using MoreLinq;
 using System.Collections.Generic;
-using TSlabScripts;
 using TSLab.DataSource;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -19,20 +18,20 @@ namespace TSLabScripts
         public OptimProperty MinLengthSegmentBC = new OptimProperty(300, 0, 5000, 10);
         public OptimProperty MaxLengthSegmentBC = new OptimProperty(0, 0, 5000, 10); // При нуле настройка выключена
 
-        public OptimProperty MultyplayDelta = new OptimProperty(0.1, 0, 1, 0.01);
-        public OptimProperty MultyplayProfit = new OptimProperty(0.2, 0, 1, 0.01);
-        public OptimProperty MultyplayStop = new OptimProperty(0.6, 0, 1, 0.01);
+        public OptimProperty MultyplayDelta = new OptimProperty(1.03, 1, 2, 0.00001);
+        public OptimProperty MultyplayProfit = new OptimProperty(1.011, 1, 2, 0.00001);
+        public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1, 2, 0.00001);
 
         public static OptimProperty DeltaModelSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
         public static OptimProperty DeltaPositionSpanSeconds = new OptimProperty(0, 0, 86400, 5); // При нуле настройка выключена
 
-        public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
-        public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
-        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
-        public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
-        public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
-        public TimeSpan DeltaModelTimeSpan = new TimeSpan(0, 0, DeltaModelSpanSeconds);
-        public TimeSpan DeltaPositionTimeSpan = new TimeSpan(0, 0, DeltaPositionSpanSeconds);
+        private TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
+        private TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
+        private TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
+        private TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
+        private TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
+        private TimeSpan DeltaModelTimeSpan = new TimeSpan(0, 0, DeltaModelSpanSeconds);
+        private TimeSpan DeltaPositionTimeSpan = new TimeSpan(0, 0, DeltaPositionSpanSeconds);
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -72,7 +71,7 @@ namespace TSLabScripts
                 PaneSides.RIGHT);
         }
 
-        public void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
+        private void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
         {
             // Не торговать ранее 10:30, есть исторические данные с более ранними тиками
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
@@ -130,7 +129,7 @@ namespace TSLabScripts
             }
         }
 
-        public void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> buySignal)
+        private void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> buySignal)
         {
             var modelBuyList = new List<TradingModel>();
 
@@ -207,7 +206,7 @@ namespace TSLabScripts
             ctx.StoreObject("BuyModel", modelBuyList);
         }
 
-        public void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> sellSignal)
+        private void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> sellSignal)
         {
             List<TradingModel> modelSellList = new List<TradingModel>();
 
@@ -283,7 +282,7 @@ namespace TSLabScripts
             ctx.StoreObject("SellModel", modelSellList);
         }
 
-        public List<TradingModel> ValidateBuyModel(ISecurity source, List<TradingModel> modelBuyList, int actualBar)
+        private List<TradingModel> ValidateBuyModel(ISecurity source, List<TradingModel> modelBuyList, int actualBar)
         {
             var lastMax = double.MinValue;
 
@@ -307,7 +306,7 @@ namespace TSLabScripts
             return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
-        public void SearchActivePosition(ISecurity source, int actualBar)
+        private void SearchActivePosition(ISecurity source, int actualBar)
         {
             var positionList = source.Positions.GetActiveForBar(actualBar);
 
@@ -334,7 +333,7 @@ namespace TSLabScripts
             }
         }
 
-        public void CloseAllPosition(ISecurity source, int actualBar)
+        private void CloseAllPosition(ISecurity source, int actualBar)
         {
             var positionList = source.Positions.GetActiveForBar(actualBar);
 
@@ -344,7 +343,7 @@ namespace TSLabScripts
             }
         }
 
-        public bool GetValidTimeFrame(IContext ctx, ISecurity source)
+        private bool GetValidTimeFrame(IContext ctx, ISecurity source)
         {
             if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
             ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
@@ -401,9 +400,9 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - bc * MultyplayDelta,
-                StopPrice = value - bc * MultyplayStop,
-                ProfitPrice = value + bc * MultyplayProfit,
+                EnterPrice = value - Math.Log(bc, MultyplayDelta),
+                StopPrice = value - Math.Log(bc, MultyplayStop),
+                ProfitPrice = value + Math.Log(bc, MultyplayProfit),
             };
         }
 
@@ -412,10 +411,23 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + bc * MultyplayDelta,
-                StopPrice = value + bc * MultyplayStop,
-                ProfitPrice = value - bc * MultyplayProfit,
+                EnterPrice = value + Math.Log(bc, MultyplayDelta),
+                StopPrice = value + Math.Log(bc, MultyplayStop),
+                ProfitPrice = value - Math.Log(bc, MultyplayProfit),
             };
+        }
+
+        private class TradingModel
+        {
+            public double Value { get; set; }
+
+            public double EnterPrice { get; set; }
+
+            public double StopPrice { get; set; }
+
+            public double ProfitPrice { get; set; }
+
+            public string GetNamePosition => Value + "_" + EnterPrice + "_" + StopPrice + "_" + ProfitPrice;
         }
     }
 }
