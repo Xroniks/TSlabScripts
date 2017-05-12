@@ -400,9 +400,9 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - Math.Round(Math.Log(bc, MultyplayDelta) / 10) * 10,
-                StopPrice = value - Math.Round(Math.Log(bc, MultyplayStop) / 10) * 10,
-                ProfitPrice = value + Math.Round(Math.Log(bc, MultyplayProfit) / 10) * 10,
+                EnterPrice = value - Math.Round(Math.Log(bc / 100, MultyplayDelta) / 10, 0) * 10,
+                StopPrice = value - Math.Round(Math.Log(bc / 100, MultyplayStop) / 10, 0) * 10,
+                ProfitPrice = value + Math.Round(Math.Log(bc / 100, MultyplayProfit) / 10, 0) * 10,
             };
         }
 
@@ -411,9 +411,9 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + Math.Round(Math.Log(bc, MultyplayDelta) / 10) * 10,
-                StopPrice = value + Math.Round(Math.Log(bc, MultyplayStop) / 10) * 10,
-                ProfitPrice = value - Math.Round(Math.Log(bc, MultyplayProfit) / 10) * 10,
+                EnterPrice = value + Math.Round(Math.Log(bc / 100, MultyplayDelta) / 10, 0) * 10,
+                StopPrice = value + Math.Round(Math.Log(bc / 100, MultyplayStop) / 10, 0) * 10,
+                ProfitPrice = value - Math.Round(Math.Log(bc / 100, MultyplayProfit) / 10, 0) * 10,
             };
         }
 
