@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{58204E84-67FA-4D38-970C-DDB8EC6D146C}</ProjectGuid>
+    <ProjectGuid>{69985442-0812-47B2-8069-E14296F46BD6}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CustomScripts</RootNamespace>
-    <AssemblyName>CustomScripts</AssemblyName>
+    <RootNamespace>TSlabScripts.Custom</RootNamespace>
+    <AssemblyName>TSlabScripts.Custom</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -41,15 +41,24 @@
     <Reference Include="TSLab.DataSource">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.DataSource.dll</HintPath>
     </Reference>
+    <Reference Include="TSLab.DataSourceHelper">
+      <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.DataSourceHelper.dll</HintPath>
+    </Reference>
     <Reference Include="TSLab.Script">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.Script.dll</HintPath>
+    </Reference>
+    <Reference Include="TSLab.Script.Execution">
+      <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.Script.Execution.dll</HintPath>
     </Reference>
     <Reference Include="TSLab.Script.Handlers">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.Script.Handlers.dll</HintPath>
     </Reference>
+    <Reference Include="TSLab.ScriptEngine">
+      <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.ScriptEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CustomScripts.cs" />
+    <Compile Include="Custom.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

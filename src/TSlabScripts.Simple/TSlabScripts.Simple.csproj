@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{427CA941-9838-4FFD-BD94-68E8D8878C3B}</ProjectGuid>
+    <ProjectGuid>{35BD3E57-14DD-4948-8625-62E8137F507F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>LogarithmScripts</RootNamespace>
-    <AssemblyName>LogarithmScripts</AssemblyName>
+    <RootNamespace>TSlabScripts.Simple</RootNamespace>
+    <AssemblyName>TSlabScripts.Simple</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -32,14 +32,11 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xml" />
     <Reference Include="TSLab.DataSource">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.DataSource.dll</HintPath>
+    </Reference>
+    <Reference Include="TSLab.DataSourceHelper">
+      <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.DataSourceHelper.dll</HintPath>
     </Reference>
     <Reference Include="TSLab.Script">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.Script.dll</HintPath>
@@ -47,9 +44,12 @@
     <Reference Include="TSLab.Script.Handlers">
       <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.Script.Handlers.dll</HintPath>
     </Reference>
+    <Reference Include="TSLab.ScriptEngine">
+      <HintPath>C:\Program Files (x86)\TSLab 1.2\TSLab.ScriptEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="LogarithmScripts.cs" />
+    <Compile Include="Simple.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

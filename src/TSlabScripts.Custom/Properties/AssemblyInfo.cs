@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("TSlabScripts")]
+[assembly: AssemblyTitle("TSlabScripts.Custom")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("TSlabScripts")]
+[assembly: AssemblyProduct("TSlabScripts.Custom")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("815057d1-8168-4f3d-9cb2-edf7d293ce17")]
+[assembly: Guid("69985442-0812-47b2-8069-e14296f46bd6")]
 
 // Version information for an assembly consists of the following four values:
 //
