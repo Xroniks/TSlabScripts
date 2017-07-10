@@ -296,7 +296,7 @@ namespace TSlabScripts.Simple
             }
         }
 
-        public bool GetValidTimeFrame(IContext ctx, ISecurity source)
+        public static bool GetValidTimeFrame(IContext ctx, ISecurity source)
         {
             if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
             ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
