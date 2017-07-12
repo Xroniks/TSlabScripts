@@ -21,8 +21,6 @@ namespace TSlabScripts.Simple
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
-        public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
-        public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -94,7 +92,7 @@ namespace TSlabScripts.Simple
                     item.Bar.Date.Month == dateActualBar.Month &&
                     item.Bar.Date.Year == dateActualBar.Year).Index;
 
-                int indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
+                int indexCompressBar = GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
 
                 // Поиск моделей на покупку
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
@@ -303,16 +301,9 @@ namespace TSlabScripts.Simple
             return false;
         }
 
-        private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
+        public static int GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar)
         {
-            var indexCompressBar = indexBeginDayBar;
-            var tempTime = dateActualBar - FiveMinutes - FiveSeconds;
-            while (compressSource.Bars[indexCompressBar].Date < tempTime)
-            {
-                indexCompressBar++;
-            }
-
-            return indexCompressBar;
+            return indexBeginDayBar + (int)((dateActualBar.TimeOfDay.TotalMinutes - 600) / 5);
         }
     }
 }
