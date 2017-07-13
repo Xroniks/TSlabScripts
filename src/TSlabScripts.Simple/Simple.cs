@@ -22,11 +22,11 @@ namespace TSlabScripts.Simple
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
 
-        private IContext TSLabContext { get; set; }
-        private ISecurity TSLabSource { get; set; }
-        private ISecurity TSLabCompressSource { get; set; }
-        public List<double> BuySignal { get; set; }
-        public List<double> SellSignal { get; set; }
+        private static IContext TSLabContext { get; set; }
+        private static ISecurity TSLabSource { get; set; }
+        private static ISecurity TSLabCompressSource { get; set; }
+        public static List<double> BuySignal { get; set; }
+        public static List<double> SellSignal { get; set; }
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -34,7 +34,7 @@ namespace TSlabScripts.Simple
             TSLabSource = source;
 
             // Проверяем таймфрейм входных данных
-            if (!GetValidTimeFrame()) return;
+            if (!GetValidTimeFrame(TSLabSource.IntervalBase, TSLabSource.Interval)) return;
 
             // Компрессия исходного таймфрейма в пятиминутный
             TSLabCompressSource = TSLabSource.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
@@ -306,9 +306,13 @@ namespace TSlabScripts.Simple
             }
         }
 
-        public bool GetValidTimeFrame()
+        public static bool GetValidTimeFrame(DataIntervals intervalBase, int interval)
         {
-            if (TSLabSource.IntervalBase == DataIntervals.SECONDS && TSLabSource.Interval == 5) return true;
+            if (intervalBase == DataIntervals.SECONDS && interval == 5)
+            {
+                return true;
+            }
+
             TSLabContext.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
             return false;
         }
@@ -324,21 +328,5 @@ namespace TSlabScripts.Simple
         public int Index { get; set; }
 
         public double Value { get; set; }
-    }
-
-    public class TradingSignal
-    {
-        public TradingSignal(int count)
-        {
-            var BuySignal = new List<double>();
-            var SellSignal = new List<double>();
-            for (var i = 0; i < count; i++)
-            {
-                BuySignal.Add(0);
-                SellSignal.Add(0);
-            }
-        }
-
-
     }
 }
