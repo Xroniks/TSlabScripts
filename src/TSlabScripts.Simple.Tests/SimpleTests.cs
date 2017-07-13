@@ -12,16 +12,6 @@ namespace TSlabScripts.Simple.Tests
     [TestFixture]
     public class SimpleTests
     {
-        private Mock<IContext> contextMock;
-        private Mock<ISecurity> securityMock;
-
-        [SetUp]
-        public void SetUp()
-        {
-            contextMock = new Mock<IContext>();
-            securityMock = new Mock<ISecurity>();
-        }
-
         [Test]
         [TestCase(DataIntervals.SECONDS, 5, true)]
         [TestCase(DataIntervals.DAYS, 5, false)]
@@ -42,18 +32,6 @@ namespace TSlabScripts.Simple.Tests
             var result = Simple.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
 
             Assert.AreEqual(expected, result);
-        }
-
-        private IList<Bar> GetBars()
-        {
-            var barList = new List<Bar>();
-            var date = new DateTime(1, 1, 1, 10, 0, 0);
-            for (int i = 0; i < 100; i++)
-            {
-                barList.Add(new Bar(new Color(), date, 0, 0, 0, 0, 0));
-                date = date.AddMinutes(5);
-            }
-            return barList;
         }
 
         private static object[] GetIndexActualCompressBar()
