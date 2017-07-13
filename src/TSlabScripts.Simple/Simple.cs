@@ -22,69 +22,78 @@ namespace TSlabScripts.Simple
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
 
+        private IContext TSLabContext { get; set; }
+        private ISecurity TSLabSource { get; set; }
+        private ISecurity TSLabCompressSource { get; set; }
+        public List<double> BuySignal { get; set; }
+        public List<double> SellSignal { get; set; }
+
         public virtual void Execute(IContext ctx, ISecurity source)
         {
+            TSLabContext = ctx;
+            TSLabSource = source;
+
             // Проверяем таймфрейм входных данных
-            if (!GetValidTimeFrame(ctx, source)) return;
+            if (!GetValidTimeFrame()) return;
 
             // Компрессия исходного таймфрейма в пятиминутный
-            var compressSource = source.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
+            TSLabCompressSource = TSLabSource.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
 
             // Генерация графика исходного таймфрейма
-            var pain = ctx.CreatePane("Original", 70, false);
-            pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
-            pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
+            var pain = TSLabContext.CreatePane("Original", 70, false);
+            pain.AddList(source.Symbol, TSLabCompressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
+            pain.AddList(source.Symbol, TSLabSource, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
 
-            var buySignal = new List<double>();
-            var sellSignal = new List<double>();
-            for (int i = 0; i < source.Bars.Count; i++)
+            var BuySignal = new List<double>();
+            var SellSignal = new List<double>();
+            for (int i = 0; i < TSLabSource.Bars.Count; i++)
             {
-                buySignal.Add(0);
-                sellSignal.Add(0);
+                BuySignal.Add(0);
+                SellSignal.Add(0);
             }
 
-            for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
+            for (var historyBar = 1; historyBar <= TSLabSource.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal);
+                Trading(historyBar);
             }
 
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
-            buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
+            buyPain.AddList("BuySignal", BuySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
 
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
-            sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
+            sellPain.AddList("SellSignal", SellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
         }
 
-        public void Trading(IContext ctx, ISecurity source, ISecurity compressSource, int actualBar, List<double> buySignal, List<double> sellSignal)
+        private void Trading(int actualBar)
         {
-            if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
+            if (TSLabSource.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
 
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
-            if (source.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
+            if (TSLabSource.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
             {
-                if (source.Positions.ActivePositionCount > 0)
+                if (TSLabSource.Positions.ActivePositionCount > 0)
                 {
-                    CloseAllPosition(source, actualBar);
+                    CloseAllPosition(actualBar);
                 }
                 return;
             }
 
             // Посик активных позиций
-            if (source.Positions.ActivePositionCount > 0)
+            if (TSLabSource.Positions.ActivePositionCount > 0)
             {
-                SearchActivePosition(source, actualBar);
+                SetStopForActivePosition(actualBar);
             }
 
-            var totalSecondsActualBar = source.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
+            var totalSecondsActualBar = TSLabSource.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
 
             if ((totalSecondsActualBar + 5) % 300 == 0)
             {
-                var dateActualBar = source.Bars[actualBar].Date;
+                var dateActualBar = TSLabSource.Bars[actualBar].Date;
 
-                var indexBeginDayBar = compressSource.Bars
+                var indexBeginDayBar = TSLabCompressSource.Bars
                     .Select((bar, index) => new { Index = index, Bar = bar })
                     .Last(item =>
                     item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
@@ -95,52 +104,43 @@ namespace TSlabScripts.Simple
                 int indexCompressBar = GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
 
                 // Поиск моделей на покупку
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
+                SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
 
                 // Поиск моделей на продажу и выставление для них ордеров
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
+                SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
             }
 
-            var modelBuyList = (List<double>)ctx.LoadObject("BuyModel") ?? new List<double>();
+            var modelBuyList = (List<double>)TSLabContext.LoadObject("BuyModel") ?? new List<double>();
             if (modelBuyList.Any())
             {
-                var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
+                var buyList = ValidateBuyModel(modelBuyList, actualBar);
                 foreach (double value in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, Value, value - ScopeDelta, Slippage, "buy_" + value);
+                    TSLabSource.Positions.BuyIfGreater(actualBar + 1, Value, value - ScopeDelta, Slippage, "buy_" + value);
                 }
-                ctx.StoreObject("BuyModel", buyList);
+                TSLabContext.StoreObject("BuyModel", buyList);
             }
 
-            var modelSellList = (List<double>)ctx.LoadObject("SellModel") ?? new List<double>();
+            var modelSellList = (List<double>)TSLabContext.LoadObject("SellModel") ?? new List<double>();
             if (modelSellList.Any())
             {
-                var sellList = ValidateSellModel(source, modelSellList, actualBar);
+                var sellList = ValidateSellModel(modelSellList, actualBar);
                 foreach (double value in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, Value, value + ScopeDelta, Slippage, "sell_" + value);
+                    TSLabSource.Positions.SellIfLess(actualBar + 1, Value, value + ScopeDelta, Slippage, "sell_" + value);
                 }
-                ctx.StoreObject("SellList", sellList);
+                TSLabContext.StoreObject("SellList", sellList);
             }
         }
 
-        public void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> buySignal)
+        private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
         {
             var modelBuyList = new List<double>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = compressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(indexCompressBar - indexPointA + 1).
-                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
-
-                var realPointA = compressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(pointB.Index - indexPointA + 1).
-                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+                var pointB = GetHighPrices(TSLabCompressSource.HighPrices, indexPointA, indexCompressBar);
+                var realPointA = GetLowPrices(TSLabCompressSource.LowPrices, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -149,11 +149,7 @@ namespace TSlabScripts.Simple
                 var ab = pointB.Value - realPointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = compressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(pointB.Index).
-                    Take(indexCompressBar - pointB.Index + 1).
-                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+                var pointC = GetLowPrices(TSLabCompressSource.LowPrices, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -165,7 +161,7 @@ namespace TSlabScripts.Simple
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
                 {
-                    var validateMax = compressSource.HighPrices.
+                    var validateMax = TSLabCompressSource.HighPrices.
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Max();
@@ -174,25 +170,25 @@ namespace TSlabScripts.Simple
 
                 modelBuyList.Add(pointB.Value);
 
-                buySignal[actualBar] = 1;
+                BuySignal[actualBar] = 1;
             }
 
-            ctx.StoreObject("BuyModel", modelBuyList);
+            TSLabContext.StoreObject("BuyModel", modelBuyList);
         }
 
-        public void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> sellSignal)
+        private void SearchSellModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
         {
             var modelSellList = new List<double>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = compressSource.LowPrices.
+                var pointB = TSLabCompressSource.LowPrices.
                     Select((value, index) => new { Value = value, Index = index }).
                     Skip(indexPointA).
                     Take(indexCompressBar - indexPointA + 1).
                     OrderBy(x => x.Value).First();
 
-                var realPointA = compressSource.HighPrices.
+                var realPointA = TSLabCompressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
                     Skip(indexPointA).
                     Take(pointB.Index - indexPointA + 1).
@@ -205,7 +201,7 @@ namespace TSlabScripts.Simple
                 var ab = realPointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = compressSource.HighPrices.
+                var pointC = TSLabCompressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
                     Skip(pointB.Index).
                     Take(indexCompressBar - pointB.Index + 1).
@@ -221,7 +217,7 @@ namespace TSlabScripts.Simple
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
                 {
-                    var validateMin = compressSource.LowPrices.
+                    var validateMin = TSLabCompressSource.LowPrices.
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Min();
@@ -230,39 +226,55 @@ namespace TSlabScripts.Simple
 
                 modelSellList.Add(pointB.Value);
 
-                sellSignal[actualBar] = 1;
+                SellSignal[actualBar] = 1;
             }
 
-            ctx.StoreObject("SellModel", modelSellList);
+            TSLabContext.StoreObject("SellModel", modelSellList);
         }
 
-        public List<double> ValidateBuyModel(ISecurity source, List<double> modelBuyList, int actualBar)
+        private Point GetLowPrices(IList<double> collection, int leftSide, int rigthSide)
+        {
+            return collection.Select((value, index) => new Point { Value = value, Index = index }).
+                    Skip(leftSide).
+                    Take(rigthSide - leftSide + 1).
+                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+        }
+
+        private Point GetHighPrices(IList<double> collection, int leftSide, int rigthSide)
+        {
+            return collection.Select((value, index) => new Point { Value = value, Index = index }).
+                    Skip(leftSide).
+                    Take(rigthSide - rigthSide + 1).
+                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last(); ;
+        }
+
+        private List<double> ValidateBuyModel(List<double> modelBuyList, int actualBar)
         {
             double lastMax = double.MinValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (TSLabSource.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
             {
-                lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
+                lastMax = TSLabSource.HighPrices[i] > lastMax ? TSLabSource.HighPrices[i] : lastMax;
             }
 
             return modelBuyList.Where(value => value - ScopeDelta > lastMax).ToList();
         }
 
-        private List<double> ValidateSellModel(ISecurity source, List<double> modelSellList, int actualBar)
+        private List<double> ValidateSellModel(List<double> modelSellList, int actualBar)
         {
             double lastMin = double.MaxValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (TSLabSource.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
             {
-                lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
+                lastMin = TSLabSource.LowPrices[i] < lastMin ? TSLabSource.LowPrices[i] : lastMin;
             }
 
             return modelSellList.Where(value => value + ScopeDelta < lastMin).ToList();
         }
 
-        public void SearchActivePosition(ISecurity source, int actualBar)
+        private void SetStopForActivePosition(int actualBar)
         {
-            var positionList = source.Positions.GetActiveForBar(actualBar);
+            var positionList = TSLabSource.Positions.GetActiveForBar(actualBar);
 
             foreach (var position in positionList)
             {
@@ -281,9 +293,9 @@ namespace TSlabScripts.Simple
             }
         }
 
-        private void CloseAllPosition(ISecurity source, int actualBar)
+        private void CloseAllPosition(int actualBar)
         {
-            var positionList = source.Positions;
+            var positionList = TSLabSource.Positions;
 
             foreach (var position in positionList)
             {
@@ -294,10 +306,10 @@ namespace TSlabScripts.Simple
             }
         }
 
-        public static bool GetValidTimeFrame(IContext ctx, ISecurity source)
+        public bool GetValidTimeFrame()
         {
-            if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
-            ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
+            if (TSLabSource.IntervalBase == DataIntervals.SECONDS && TSLabSource.Interval == 5) return true;
+            TSLabContext.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
             return false;
         }
 
@@ -305,5 +317,28 @@ namespace TSlabScripts.Simple
         {
             return indexBeginDayBar + (int)((dateActualBar.TimeOfDay.TotalMinutes - 600) / 5);
         }
+    }
+
+    public class Point
+    {
+        public int Index { get; set; }
+
+        public double Value { get; set; }
+    }
+
+    public class TradingSignal
+    {
+        public TradingSignal(int count)
+        {
+            var BuySignal = new List<double>();
+            var SellSignal = new List<double>();
+            for (var i = 0; i < count; i++)
+            {
+                BuySignal.Add(0);
+                SellSignal.Add(0);
+            }
+        }
+
+
     }
 }
