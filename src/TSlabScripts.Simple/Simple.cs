@@ -45,8 +45,8 @@ namespace TSlabScripts.Simple
             pain.AddList(source.Symbol, TSLabSource, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
 
-            var BuySignal = new List<double>();
-            var SellSignal = new List<double>();
+            BuySignal = new List<double>();
+            SellSignal = new List<double>();
             for (int i = 0; i < TSLabSource.Bars.Count; i++)
             {
                 BuySignal.Add(0);
