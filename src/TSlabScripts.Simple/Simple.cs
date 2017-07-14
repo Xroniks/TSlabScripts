@@ -18,15 +18,15 @@ namespace TSlabScripts.Simple
         public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
 
-        public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
-        public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
-        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
+        private readonly TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
+        private readonly TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
+        private readonly TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
 
         private static IContext TSLabContext { get; set; }
         private static ISecurity TSLabSource { get; set; }
         private static ISecurity TSLabCompressSource { get; set; }
-        public static List<double> BuySignal { get; set; }
-        public static List<double> SellSignal { get; set; }
+        private static List<double> BuySignal { get; set; }
+        private static List<double> SellSignal { get; set; }
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -34,41 +34,29 @@ namespace TSlabScripts.Simple
             TSLabSource = source;
 
             // Проверяем таймфрейм входных данных
-            if (!GetValidTimeFrame(TSLabSource.IntervalBase, TSLabSource.Interval)) return;
+            if (!GetValidTimeFrame(TSLabSource.IntervalBase, TSLabSource.Interval))
+            {
+                TSLabContext.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
+                return;
+            }
 
             // Компрессия исходного таймфрейма в пятиминутный
             TSLabCompressSource = TSLabSource.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
 
-            // Генерация графика исходного таймфрейма
-            var pain = TSLabContext.CreatePane("Original", 70, false);
-            pain.AddList(source.Symbol, TSLabCompressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
-            pain.AddList(source.Symbol, TSLabSource, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
-
-
-            BuySignal = new List<double>();
-            SellSignal = new List<double>();
-            for (int i = 0; i < TSLabSource.Bars.Count; i++)
-            {
-                BuySignal.Add(0);
-                SellSignal.Add(0);
-            }
+            RenderBars();
+            InitModelIndicator();
 
             for (var historyBar = 1; historyBar <= TSLabSource.Bars.Count - 1; historyBar++)
             {
                 Trading(historyBar);
             }
 
-            var buyPain = ctx.CreatePane("BuySignal", 15, false);
-            buyPain.AddList("BuySignal", BuySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
-                PaneSides.RIGHT);
-
-            var sellPain = ctx.CreatePane("SellSignal", 15, false);
-            sellPain.AddList("SellSignal", SellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
-                PaneSides.RIGHT);
+            RenderModelIndicator();
         }
 
         private void Trading(int actualBar)
         {
+            // Если время менее 10:00 - не торговать
             if (TSLabSource.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
 
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
@@ -81,35 +69,23 @@ namespace TSlabScripts.Simple
                 return;
             }
 
-            // Посик активных позиций
-            if (TSLabSource.Positions.ActivePositionCount > 0)
-            {
-                SetStopForActivePosition(actualBar);
-            }
+            SetStopForActivePosition(actualBar);
 
-            var totalSecondsActualBar = TSLabSource.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
-
-            if ((totalSecondsActualBar + 5) % 300 == 0)
+            if (IsStartFiveMinutesBar(actualBar))
             {
                 var dateActualBar = TSLabSource.Bars[actualBar].Date;
+                var indexBeginDayBar = GetIndexBeginDayBar(dateActualBar);
+                var indexCompressBar = GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
 
-                var indexBeginDayBar = TSLabCompressSource.Bars
-                    .Select((bar, index) => new { Index = index, Bar = bar })
-                    .Last(item =>
-                    item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
-                    item.Bar.Date.Day == dateActualBar.Day &&
-                    item.Bar.Date.Month == dateActualBar.Month &&
-                    item.Bar.Date.Year == dateActualBar.Year).Index;
-
-                int indexCompressBar = GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
-
-                // Поиск моделей на покупку
                 SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
-
-                // Поиск моделей на продажу и выставление для них ордеров
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
             }
 
+            SetStopToOpenPosition(actualBar);
+        }
+
+        private void SetStopToOpenPosition(int actualBar)
+        {
             var modelBuyList = (List<double>)TSLabContext.LoadObject("BuyModel") ?? new List<double>();
             if (modelBuyList.Any())
             {
@@ -131,6 +107,22 @@ namespace TSlabScripts.Simple
                 }
                 TSLabContext.StoreObject("SellList", sellList);
             }
+        }
+
+        private int GetIndexBeginDayBar(DateTime dateActualBar)
+        {
+            return TSLabCompressSource.Bars
+                    .Select((bar, index) => new { Index = index, Bar = bar })
+                    .Last(item =>
+                    item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
+                    item.Bar.Date.Day == dateActualBar.Day &&
+                    item.Bar.Date.Month == dateActualBar.Month &&
+                    item.Bar.Date.Year == dateActualBar.Year).Index;
+        }
+
+        private bool IsStartFiveMinutesBar(int actualBar)
+        {
+            return (TSLabSource.Bars[actualBar].Date.TimeOfDay.TotalSeconds + 5) % 300 == 0;
         }
 
         private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
@@ -245,14 +237,14 @@ namespace TSlabScripts.Simple
             return collection.Select((value, index) => new Point { Value = value, Index = index }).
                     Skip(leftSide).
                     Take(rigthSide - rigthSide + 1).
-                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last(); ;
+                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
         }
 
         private List<double> ValidateBuyModel(List<double> modelBuyList, int actualBar)
         {
             double lastMax = double.MinValue;
 
-            for (var i = actualBar; i >= 0 && (TSLabSource.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && IsStartFiveMinutesBar(i); i--)
             {
                 lastMax = TSLabSource.HighPrices[i] > lastMax ? TSLabSource.HighPrices[i] : lastMax;
             }
@@ -264,7 +256,7 @@ namespace TSlabScripts.Simple
         {
             double lastMin = double.MaxValue;
 
-            for (var i = actualBar; i >= 0 && (TSLabSource.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && IsStartFiveMinutesBar(i); i--)
             {
                 lastMin = TSLabSource.LowPrices[i] < lastMin ? TSLabSource.LowPrices[i] : lastMin;
             }
@@ -274,6 +266,11 @@ namespace TSlabScripts.Simple
 
         private void SetStopForActivePosition(int actualBar)
         {
+            if (TSLabSource.Positions.ActivePositionCount <= 0)
+            {
+                return;
+            }
+
             var positionList = TSLabSource.Positions.GetActiveForBar(actualBar);
 
             foreach (var position in positionList)
@@ -306,15 +303,38 @@ namespace TSlabScripts.Simple
             }
         }
 
+        private void InitModelIndicator()
+        {
+            BuySignal = new List<double>();
+            SellSignal = new List<double>();
+            for (int i = 0; i < TSLabSource.Bars.Count; i++)
+            {
+                BuySignal.Add(0);
+                SellSignal.Add(0);
+            }
+        }
+
+        private void RenderModelIndicator()
+        {
+            var buyPain = TSLabContext.CreatePane("BuySignal", 15, false);
+            buyPain.AddList("BuySignal", BuySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
+                PaneSides.RIGHT);
+
+            var sellPain = TSLabContext.CreatePane("SellSignal", 15, false);
+            sellPain.AddList("SellSignal", SellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
+                PaneSides.RIGHT);
+        }
+
+        private void RenderBars()
+        {
+            var pain = TSLabContext.CreatePane("Original", 70, false);
+            pain.AddList(TSLabSource.Symbol, TSLabCompressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
+            pain.AddList(TSLabSource.Symbol, TSLabSource, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
+        }
+
         public static bool GetValidTimeFrame(DataIntervals intervalBase, int interval)
         {
-            if (intervalBase == DataIntervals.SECONDS && interval == 5)
-            {
-                return true;
-            }
-
-            TSLabContext.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
-            return false;
+           return intervalBase == DataIntervals.SECONDS && interval == 5;
         }
 
         public static int GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar)
