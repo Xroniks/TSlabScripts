@@ -74,7 +74,7 @@ namespace TSlabScripts.SimpleAfter
             {
                 var dateActualBar = TsLabSource.Bars[actualBar].Date;
                 var indexBeginDayBar = SimpleService.GetIndexBeginDayBar(TsLabSource, dateActualBar);
-                var indexCompressBar = SimpleService.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
+                var indexCompressBar = SimpleService.GetIndexActualCompressBar(TsLabCompressSource, dateActualBar, indexBeginDayBar);
 
                 SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);

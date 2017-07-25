@@ -24,9 +24,17 @@ namespace TSlabScripts.Common
                     OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
         }
 
-        public static int GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar)
+        public static int GetIndexActualCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
-            return indexBeginDayBar + (int)((dateActualBar.TimeOfDay.TotalMinutes - 600) / 5);
+            // Обязатеьно сравнивать по времени т.к. число баров может не соотвествовать
+            var indexCompressBar = indexBeginDayBar;
+            var tempTime = dateActualBar;
+            while (compressSource.Bars[indexCompressBar].Date < tempTime)
+            {
+                indexCompressBar++;
+            }
+            // -1 не разобрался зачем, но так работает
+            return indexCompressBar - 1;
         }
 
         public static bool GetValidTimeFrame(DataIntervals intervalBase, int interval)

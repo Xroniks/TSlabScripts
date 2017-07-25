@@ -26,14 +26,14 @@ namespace TSlabScripts.Simple.Tests
             Assert.AreEqual(expected, result);
         }
 
-        [Test]
-        [TestCaseSource(nameof(GetIndexActualCompressBar))]
-        public void GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar, int expected)
-        {
-            var result = SimpleService.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
-
-            Assert.AreEqual(expected, result);
-        }
+//        [Test]
+//        [TestCaseSource(nameof(GetIndexActualCompressBar))]
+//        public void GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar, int expected)
+//        {
+//            var result = SimpleService.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
+//
+//            Assert.AreEqual(expected, result);
+//        }
 
         private static object[] GetIndexActualCompressBar()
         {
