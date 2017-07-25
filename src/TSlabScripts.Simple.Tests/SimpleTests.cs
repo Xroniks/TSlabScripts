@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Moq;
 using NUnit.Framework;
+using TSlabScripts.Common;
 using TSLab.DataSource;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -20,7 +21,7 @@ namespace TSlabScripts.Simple.Tests
         [TestCase(DataIntervals.SECONDS, 10, false)]
         public void GetValidTimeFrame(DataIntervals intervalBase, int interval, bool expected)
         {
-            var result = Simple.GetValidTimeFrame(intervalBase, interval);
+            var result = SimpleService.GetValidTimeFrame(intervalBase, interval);
 
             Assert.AreEqual(expected, result);
         }
@@ -29,7 +30,7 @@ namespace TSlabScripts.Simple.Tests
         [TestCaseSource(nameof(GetIndexActualCompressBar))]
         public void GetIndexActualCompressBar(DateTime dateActualBar, int indexBeginDayBar, int expected)
         {
-            var result = Simple.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
+            var result = SimpleService.GetIndexActualCompressBar(dateActualBar, indexBeginDayBar);
 
             Assert.AreEqual(expected, result);
         }

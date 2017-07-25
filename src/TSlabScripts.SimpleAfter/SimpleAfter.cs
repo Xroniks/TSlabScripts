@@ -25,8 +25,7 @@ namespace TSlabScripts.SimpleAfter
         private static IContext TsLabContext { get; set; }
         private static ISecurity TsLabSource { get; set; }
         private static ISecurity TsLabCompressSource { get; set; }
-        private static List<double> BuySignal { get; set; }
-        private static List<double> SellSignal { get; set; }
+        private ModelSignal Model { get; set; }
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -44,14 +43,14 @@ namespace TSlabScripts.SimpleAfter
             TsLabCompressSource = TsLabSource.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
 
             SimpleHealper.RenderBars(TsLabContext, TsLabSource, TsLabCompressSource);
-            SimpleHealper.InitModelIndicator(TsLabSource, BuySignal, SellSignal);
+            Model = new ModelSignal(TsLabSource.Bars.Count);
 
             for (var historyBar = 1; historyBar <= TsLabSource.Bars.Count - 1; historyBar++)
             {
                 Trading(historyBar);
             }
 
-            SimpleHealper.RenderModelIndicator(TsLabContext, BuySignal, SellSignal);
+            SimpleHealper.RenderModelIndicator(TsLabContext, Model);
         }
 
         private void Trading(int actualBar)
@@ -126,7 +125,7 @@ namespace TSlabScripts.SimpleAfter
 
                 modelBuyList.Add(pointB.Value);
 
-                BuySignal[actualBar] = 1;
+                Model.BuySignal[actualBar] = 1;
             }
 
             TsLabContext.StoreObject("BuyModel", modelBuyList);
@@ -182,7 +181,7 @@ namespace TSlabScripts.SimpleAfter
 
                 modelSellList.Add(pointB.Value);
 
-                SellSignal[actualBar] = 1;
+                Model.SellSignal[actualBar] = 1;
             }
 
             TsLabContext.StoreObject("SellModel", modelSellList);

@@ -80,6 +80,10 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\TSlabScripts.Common\TSlabScripts.Common.csproj">
+      <Project>{dbafb5d3-086d-4da4-8fea-4d21e0b6ce00}</Project>
+      <Name>TSlabScripts.Common</Name>
+    </ProjectReference>
     <ProjectReference Include="..\TSlabScripts.Simple\TSlabScripts.Simple.csproj">
       <Project>{35bd3e57-14dd-4948-8625-62e8137f507f}</Project>
       <Name>TSlabScripts.Simple</Name>

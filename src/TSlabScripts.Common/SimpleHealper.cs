@@ -22,25 +22,14 @@ namespace TSlabScripts.Common
             }
         }
 
-        public static void InitModelIndicator(ISecurity source, IList<double> buySignal, IList<double> sellSignal)
-        {
-            buySignal = new List<double>();
-            sellSignal = new List<double>();
-            for (int i = 0; i < source.Bars.Count; i++)
-            {
-                buySignal.Add(0);
-                sellSignal.Add(0);
-            }
-        }
-
-        public static void RenderModelIndicator(IContext context, IList<double> buySignal, IList<double> sellSignal)
+        public static void RenderModelIndicator(IContext context, ModelSignal model)
         {
             var buyPain = context.CreatePane("BuySignal", 15, false);
-            buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
+            buyPain.AddList("BuySignal", model.BuySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
 
             var sellPain = context.CreatePane("SellSignal", 15, false);
-            sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
+            sellPain.AddList("SellSignal", model.SellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
         }
 
