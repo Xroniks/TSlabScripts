@@ -114,17 +114,8 @@ namespace TSlabScripts.Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = TsLabCompressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(indexCompressBar - indexPointA + 1).
-                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
-
-                var realPointA = TsLabCompressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(pointB.Index - indexPointA + 1).
-                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+                var pointB = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -133,11 +124,7 @@ namespace TSlabScripts.Simple
                 var ab = pointB.Value - realPointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = TsLabCompressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(pointB.Index).
-                    Take(indexCompressBar - pointB.Index + 1).
-                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+                var pointC = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -170,17 +157,8 @@ namespace TSlabScripts.Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = TsLabCompressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(indexCompressBar - indexPointA + 1).
-                    OrderBy(x => x.Value).First();
-
-                var realPointA = TsLabCompressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(pointB.Index - indexPointA + 1).
-                    OrderBy(x => x.Value).Last();
+                var pointB = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -189,11 +167,7 @@ namespace TSlabScripts.Simple
                 var ab = realPointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = TsLabCompressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(pointB.Index).
-                    Take(indexCompressBar - pointB.Index + 1).
-                    OrderBy(x => x.Value).Last();
+                var pointC = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;

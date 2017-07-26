@@ -20,7 +20,7 @@ namespace TSlabScripts.Common
         {
             return collection.Select((value, index) => new Point { Value = value, Index = index }).
                     Skip(leftSide).
-                    Take(rigthSide - rigthSide + 1).
+                    Take(rigthSide - leftSide + 1).
                     OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
         }
 
