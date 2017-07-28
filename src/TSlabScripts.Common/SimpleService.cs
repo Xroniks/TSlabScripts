@@ -28,8 +28,7 @@ namespace TSlabScripts.Common
         {
             // Обязатеьно сравнивать по времени т.к. число баров может не соотвествовать
             var indexCompressBar = indexBeginDayBar;
-            var tempTime = dateActualBar;
-            while (compressSource.Bars[indexCompressBar].Date < tempTime)
+            while (compressSource.Bars[indexCompressBar].Date < dateActualBar)
             {
                 indexCompressBar++;
             }

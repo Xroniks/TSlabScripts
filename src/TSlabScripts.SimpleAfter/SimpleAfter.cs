@@ -13,11 +13,15 @@ namespace TSlabScripts.SimpleAfter
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 1);
-        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeDeltaSimple = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeProfiteSimple = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeStopeSimple = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, double.MaxValue, 10);
+        public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, double.MaxValue, 10);
+        public OptimProperty ScopeDeltaSimple = new OptimProperty(50, 0, double.MaxValue, 10);
+        public OptimProperty ScopeProfiteSimple = new OptimProperty(100, 0, double.MaxValue, 10);
+        public OptimProperty ScopeStopeSimple = new OptimProperty(300, 0, double.MaxValue, 10);
+
+        public OptimProperty WeitCountBar = new OptimProperty(10, 0, 1000, 1);
+        public OptimProperty ScopeProfiteAfteSimple = new OptimProperty(200, 0, double.MaxValue, 10);
+        public OptimProperty ScopeStopeAfteSimple = new OptimProperty(250, 0, double.MaxValue, 10);
 
         private readonly TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         private readonly TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
@@ -73,11 +77,11 @@ namespace TSlabScripts.SimpleAfter
             if (SimpleService.IsStartFiveMinutesBar(TsLabSource, actualBar))
             {
                 var dateActualBar = TsLabSource.Bars[actualBar].Date;
-                var indexBeginDayBar = SimpleService.GetIndexBeginDayBar(TsLabSource, dateActualBar);
+                var indexBeginDayBar = SimpleService.GetIndexBeginDayBar(TsLabCompressSource, dateActualBar);
                 var indexCompressBar = SimpleService.GetIndexActualCompressBar(TsLabCompressSource, dateActualBar, indexBeginDayBar);
 
-                SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
-                //SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
+                SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
+                //SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
             }
 
             SetStopToOpenPosition(actualBar);
@@ -85,12 +89,33 @@ namespace TSlabScripts.SimpleAfter
 
         private void SetStopForActivePosition(int actualBar)
         {
-             
+            if (TsLabSource.Positions.ActivePositionCount <= 0)
+            {
+                return;
+            }
+
+            var positionList = TsLabSource.Positions.GetActiveForBar(actualBar);
+
+            foreach (var position in positionList)
+            {
+                var arr = position.EntrySignalName.Split('_');
+                switch (arr[0])
+                {
+//                    case "buy":
+//                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfite, "closeProfit");
+//                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, Slippage, "closeStop");
+//                        break;
+                    case "sell":
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfiteAfteSimple, "closeProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStopeAfteSimple, Slippage, "closeStop");
+                        break;
+                }
+            }
         }
 
-        private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
+        private void SearchSellModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
         {
-            var modelBuyList = new List<double>();
+            var modelSellList = new List<double>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -114,39 +139,84 @@ namespace TSlabScripts.SimpleAfter
                     pointC.Value - realPointA.Value < 0) continue;
 
                 // Проверка на пересечение-
-                if (indexCompressBar != pointC.Index)
+                if (indexCompressBar == pointC.Index) continue;
+                
+                var pointD = TsLabCompressSource.HighPrices.
+                    Select((value, index) => new Point {Value = value, Index = index}).
+                    Skip(pointC.Index + 1).Take(indexCompressBar - pointC.Index).
+                    FirstOrDefault(x => x.Value >= pointB.Value - ScopeDeltaSimple);
+                if (pointD == null) continue;
+
+                var pointE = TsLabCompressSource.LowPrices.
+                    Select((value, index) => new Point {Value = value, Index = index}).
+                    Skip(pointD.Index).Take(indexCompressBar - pointD.Index + 1).
+                    FirstOrDefault(x => x.Value <= pointB.Value - ScopeStopeSimple);
+                if (pointE == null) continue;
+                if (pointD.Index == pointE.Index)
                 {
-                    var pointD = TsLabCompressSource.HighPrices.
-                        Select((value, index) => new Point {Value = value, Index = index}).
-                        Skip(pointC.Index + 1).Take(indexCompressBar - pointC.Index).
-                        FirstOrDefault(x => x.Value >= pointB.Value - ScopeDeltaSimple);
-                    if (pointD == null) continue;
+                    var startDate = TsLabCompressSource.Bars[pointE.Index].Date;
+                    var endDate = startDate.AddMinutes(4).AddSeconds(55);
+                    var range = TsLabSource.Bars.Where(x => x.Date >= startDate && x.Date <= endDate).ToList();
+
+                    var pointDNotCompress = range.
+                    Select((value, index) => new Point { Value = value.High, Index = index }).
+                    FirstOrDefault(x => x.Value >= pointB.Value - ScopeDeltaSimple);
+                    if (pointDNotCompress == null) continue;
+
+                    var pointENotCompress = range.
+                    Select((value, index) => new Point { Value = value.Low, Index = index }).
+                    Skip(pointDNotCompress.Index).
+                    FirstOrDefault(x => x.Value >= pointB.Value - ScopeDeltaSimple);
+                    if (pointENotCompress == null) continue;
+
+                    if (pointDNotCompress.Index == pointENotCompress.Index)
+                    {
+                        TsLabContext.Log($"pointDNotCompress.Index == pointENotCompress.Index, acctualBar = {actualBar}", new Color(), true);
+                        continue;
+                    }
+
+                    var validateMaxNotCompress = range.
+                        Skip(pointDNotCompress.Index).Take(pointENotCompress.Index - pointDNotCompress.Index + 1).
+                        Max(x => x.High);
 
 
-                    var pointE = TsLabCompressSource.LowPrices.
-                        Select((value, index) => new Point {Value = value, Index = index}).
-                        Skip(pointD.Index).Take(indexCompressBar - pointD.Index + 1).
-                        FirstOrDefault(x => x.Value <= pointB.Value - ScopeStopeSimple);
+
+
+                        // Проанализирвоать на уровне 5 секунд
+                        TsLabContext.Log($"pointD.Index == pointE.Index, acctualBar = {actualBar}",new Color());
+
+                    pointE = TsLabCompressSource.LowPrices.
+                    Select((value, index) => new Point { Value = value, Index = index }).
+                    Skip(pointD.Index + 1).Take(indexCompressBar - pointD.Index).
+                    FirstOrDefault(x => x.Value <= pointB.Value - ScopeStopeSimple);
                     if (pointE == null) continue;
+                }
+                if (TsLabCompressSource.HighPrices[pointE.Index] >= pointB.Value + ScopeProfiteSimple)
+                {
+                    // Проанализирвоать на уровне 5 секунд
+                    TsLabContext.Log($"TsLabCompressSource.HighPrices[pointE.Index] >= pointB.Value + ScopeProfiteSimple, acctualBar = {actualBar}", new Color());
+                    continue;
+                }
+               if (pointB.Value - TsLabCompressSource.LowPrices[pointE.Index] > 400) continue;
+               if (indexCompressBar - pointE.Index > WeitCountBar) continue;
 
-                    var validateMax = TsLabCompressSource.HighPrices.
-                        Skip(pointC.Index + 1).Take(indexCompressBar - pointC.Index).
-                        Max();
-                    if (pointB.Value - ScopeDeltaSimple <= validateMax) continue;
-                } else { continue; }
+                if (pointE.Index != indexCompressBar)
+                {
+                    var validateMin = TsLabCompressSource.LowPrices.
+                        Skip(pointE.Index + 1).Take(indexCompressBar - pointE.Index).
+                        Min();
+                    if (pointE.Value >= validateMin) continue;
+                }
 
-                modelBuyList.Add(pointB.Value);
-
-                Model.BuySignal[actualBar] = 1;
+                modelSellList.Add(pointE.Value);
+                Model.SellSignal[actualBar] = 1;
+                TsLabContext.Log($"Модель найдена", new Color());
             }
 
-            TsLabContext.StoreObject("BuyModel", modelBuyList);
-
-            List<double> list = new List<double> {0,1,2,3,4,5,6,7,8,9};
-            Console.WriteLine(list.Skip(4));
+            TsLabContext.StoreObject("SellModel", modelSellList);
         }
 
-//        private void SearchSellModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
+//        private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
 //        {
 //            var modelSellList = new List<double>();
 //
@@ -204,7 +274,16 @@ namespace TSlabScripts.SimpleAfter
 
         private void SetStopToOpenPosition(int actualBar)
         {
-
+            var modelSellList = (List<double>)TsLabContext.LoadObject("SellModel") ?? new List<double>();
+            if (modelSellList.Any())
+            {
+                var sellList = ValidateSellModel(modelSellList, actualBar);
+                foreach (double value in sellList)
+                {
+                    TsLabSource.Positions.SellIfLess(actualBar + 1, Value, value, Slippage, "sell_" + value);
+                }
+                TsLabContext.StoreObject("SellList", sellList);
+            }
         }
 
         private List<double> ValidateBuyModel(List<double> modelBuyList, int actualBar)
@@ -214,7 +293,14 @@ namespace TSlabScripts.SimpleAfter
 
         private List<double> ValidateSellModel(List<double> modelSellList, int actualBar)
         {
-            return new List<double>();
+            double lastMin = double.MaxValue;
+
+            for (var i = actualBar; i >= 0 && !SimpleService.IsStartFiveMinutesBar(TsLabSource, i); i--)
+            {
+                lastMin = TsLabSource.LowPrices[i] < lastMin ? TsLabSource.LowPrices[i] : lastMin;
+            }
+
+            return modelSellList.Where(value => value < lastMin).ToList();
         }
     }
 }
