@@ -81,7 +81,7 @@ namespace TSlabScripts.SimpleAfter
                 var indexCompressBar = SimpleService.GetIndexActualCompressBar(TsLabCompressSource, dateActualBar, indexBeginDayBar);
 
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
-                //SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
+                SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
             }
 
             SetStopToOpenPosition(actualBar);
@@ -101,10 +101,10 @@ namespace TSlabScripts.SimpleAfter
                 var arr = position.EntrySignalName.Split('_');
                 switch (arr[0])
                 {
-//                    case "buy":
-//                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfite, "closeProfit");
-//                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStope, Slippage, "closeStop");
-//                        break;
+                    case "buy":
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfiteAfteSimple, "closeProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStopeAfteSimple, Slippage, "closeStop");
+                        break;
                     case "sell":
                         position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfiteAfteSimple, "closeProfit");
                         position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStopeAfteSimple, Slippage, "closeStop");
@@ -233,7 +233,7 @@ namespace TSlabScripts.SimpleAfter
                     }
 
                     // Simple модель закрылась по профиту
-                    if (profitPoint.Index > stopPoint.Index) continue;
+                    if (profitPoint.Index < stopPoint.Index) continue;
                 }
 
                 if (pointB.Value - TsLabCompressSource.LowPrices[pointE.Index] > 400) continue;
@@ -249,67 +249,175 @@ namespace TSlabScripts.SimpleAfter
 
                 modelSellList.Add(pointE.Value);
                 Model.SellSignal[actualBar] = 1;
-                TsLabContext.Log($"Модель найдена", new Color());
             }
 
             TsLabContext.StoreObject("SellModel", modelSellList);
         }
 
-        //        private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
-        //        {
-        //            var modelSellList = new List<double>();
-        //
-        //            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
-        //            {
-        //                var pointB = TsLabCompressSource.LowPrices.
-        //                    Select((value, index) => new { Value = value, Index = index }).
-        //                    Skip(indexPointA).
-        //                    Take(indexCompressBar - indexPointA + 1).
-        //                    OrderBy(x => x.Value).First();
-        //
-        //                var realPointA = TsLabCompressSource.HighPrices.
-        //                    Select((value, index) => new { Value = value, Index = index }).
-        //                    Skip(indexPointA).
-        //                    Take(pointB.Index - indexPointA + 1).
-        //                    OrderBy(x => x.Value).Last();
-        //
-        //                // Точки A и B не могут быть на одном баре
-        //                if (pointB.Index == realPointA.Index) continue;
-        //
-        //                // Проверм размер фигуры A-B
-        //                var ab = realPointA.Value - pointB.Value;
-        //                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-        //
-        //                var pointC = TsLabCompressSource.HighPrices.
-        //                    Select((value, index) => new { Value = value, Index = index }).
-        //                    Skip(pointB.Index).
-        //                    Take(indexCompressBar - pointB.Index + 1).
-        //                    OrderBy(x => x.Value).Last();
-        //
-        //                // Точки B и C не могут быть на одном баре
-        //                if (pointB.Index == pointC.Index) continue;
-        //
-        //                // Проверям размер модели B-C
-        //                if (pointC.Value - pointB.Value <= LengthSegmentBC ||
-        //                    realPointA.Value - pointC.Value < 0) continue;
-        //
-        //                // Проверка на пересечение
-        //                if (indexCompressBar != pointC.Index)
-        //                {
-        //                    var validateMin = TsLabCompressSource.LowPrices.
-        //                        Skip(pointC.Index + 1).
-        //                        Take(indexCompressBar - pointC.Index).
-        //                        Min();
-        //                    if (pointB.Value + ScopeDeltaSimple >= validateMin) continue;
-        //                }
-        //
-        //                modelSellList.Add(pointB.Value);
-        //
-        //                Model.SellSignal[actualBar] = 1;
-        //            }
-        //
-        //            TsLabContext.StoreObject("SellModel", modelSellList);
-        //        }
+        private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
+        {
+            var modelBuyList = new List<double>();
+
+            for (var indexPointA = indexCompressBar - 1;
+                indexPointA >= indexBeginDayBar && indexPointA >= 0;
+                indexPointA--)
+            {
+                var pointB = TsLabCompressSource.LowPrices.
+                    Select((value, index) => new {Value = value, Index = index}).
+                    Skip(indexPointA).
+                    Take(indexCompressBar - indexPointA + 1).
+                    OrderBy(x => x.Value).First();
+
+                var realPointA = TsLabCompressSource.HighPrices.
+                    Select((value, index) => new {Value = value, Index = index}).
+                    Skip(indexPointA).
+                    Take(pointB.Index - indexPointA + 1).
+                    OrderBy(x => x.Value).Last();
+
+                // Точки A и B не могут быть на одном баре
+                if (pointB.Index == realPointA.Index) continue;
+
+                // Проверм размер фигуры A-B
+                var ab = realPointA.Value - pointB.Value;
+                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+
+                var pointC = TsLabCompressSource.HighPrices.
+                    Select((value, index) => new {Value = value, Index = index}).
+                    Skip(pointB.Index).
+                    Take(indexCompressBar - pointB.Index + 1).
+                    OrderBy(x => x.Value).Last();
+
+                // Точки B и C не могут быть на одном баре
+                if (pointB.Index == pointC.Index) continue;
+
+                // Проверям размер модели B-C
+                if (pointC.Value - pointB.Value <= LengthSegmentBC ||
+                    realPointA.Value - pointC.Value < 0) continue;
+
+                // Входа по Simple еще не было
+                if (indexCompressBar == pointC.Index) continue;
+
+                var pointD = TsLabCompressSource.LowPrices.
+                    Select((value, index) => new Point {Value = value, Index = index}).
+                    Skip(pointC.Index + 1).Take(indexCompressBar - pointC.Index).
+                    FirstOrDefault(x => x.Value <= pointB.Value + ScopeDeltaSimple);
+                // Входа по Simple еще не было
+                if (pointD == null) continue;
+
+                var pointE = TsLabCompressSource.HighPrices.
+                    Select((value, index) => new Point {Value = value, Index = index}).
+                    Skip(pointD.Index).Take(indexCompressBar - pointD.Index + 1).
+                    FirstOrDefault(x => x.Value >= pointB.Value + ScopeStopeSimple);
+                // Simple модель не закрылась по стопу
+                if (pointE == null) continue;
+
+                // Образовалась сутуация, когда одна пятиминутка касается нескольких уровней (стопа и входа или стопа, входа и профита)
+                // Нужен разбор ситуации на уровне пяти секунд
+                if (pointD.Index == pointE.Index)
+                {
+                    var startDate = TsLabCompressSource.Bars[pointE.Index].Date;
+                    var endDate = startDate.AddMinutes(4).AddSeconds(55);
+                    var decompressRange =
+                        TsLabSource.Bars.Where(x => x.Date >= startDate && x.Date <= endDate).ToList();
+
+                    var pointDNotCompress = decompressRange.
+                        Select((value, index) => new Point {Value = value.Low, Index = index}).
+                        FirstOrDefault(x => x.Value <= pointB.Value + ScopeDeltaSimple);
+
+                    var pointENotCompress = decompressRange.
+                        Select((value, index) => new Point {Value = value.High, Index = index}).
+                        Skip(pointDNotCompress.Index).
+                        FirstOrDefault(x => x.Value >= pointB.Value + ScopeStopeSimple);
+                    // Simple модель не закрылась на первом баре
+                    if (pointENotCompress == null)
+                    {
+                        //Найти точку E пропустив первый бар
+                        pointE = TsLabCompressSource.HighPrices.
+                            Select((value, index) => new Point {Value = value, Index = index}).
+                            Skip(pointD.Index + 1).Take(indexCompressBar - pointD.Index).
+                            FirstOrDefault(x => x.Value >= pointB.Value + ScopeStopeSimple);
+                        // Simple модель не закрылась по стопу
+                        if (pointE == null) continue;
+                    }
+                    else
+                    {
+                        if (pointDNotCompress.Index == pointENotCompress.Index)
+                        {
+                            // Нет возможности точно определить что было в первую очередь
+                            TsLabContext.Log(
+                                $"Открытие позиции и пересечение стопа на одном пятисекундном баре, acctualBar = {actualBar}",
+                                new Color(), true);
+                            continue;
+                        }
+
+                        if (decompressRange[pointENotCompress.Index].Low >= pointB.Value - ScopeProfiteSimple)
+                        {
+                            // Нет возможности точно определить что было в первую очередь
+                            TsLabContext.Log(
+                                $"Один пятисекундный бар коснулся и стопа и профита, acctualBar = {actualBar}",
+                                new Color(), true);
+                            continue;
+                        }
+
+                        var validateMinNotCompress = decompressRange
+                            .Skip(pointDNotCompress.Index)
+                            .Take(pointENotCompress.Index - pointDNotCompress.Index)
+                            .Min(x => x.Low);
+                        // Simple модель закрылась в течении первого пятиминутного бара по профиту
+                        if (validateMinNotCompress <= pointB.Value - ScopeProfiteSimple) continue;
+
+                        // Остался только один вариант, Simple модель закрылась в течении первого пятиминутного бара по стопу
+                        // В этом случае точка E определена верно и с ней нужно продолжить работу pointD == pointE
+                    }
+                }
+
+                // Образовалась сутуация, когда одна пятиминутка уже после входа в позицию касается нескольких уровней (стопа и профита)
+                // Нужен разбор ситуации на уровне пяти секунд
+                if (pointD.Index != pointE.Index &&
+                    TsLabCompressSource.LowPrices[pointE.Index] <= pointB.Value - ScopeProfiteSimple)
+                {
+                    var startDate = TsLabCompressSource.Bars[pointE.Index].Date;
+                    var endDate = startDate.AddMinutes(4).AddSeconds(55);
+                    var decompressRange = TsLabSource.Bars.Where(x => x.Date >= startDate && x.Date <= endDate).ToList();
+
+                    var profitPoint = decompressRange
+                        .Select((value, index) => new Point {Value = value.Low, Index = index})
+                        .First(x => x.Value <= pointB.Value - ScopeProfiteSimple);
+
+                    var stopPoint = decompressRange
+                        .Select((value, index) => new Point {Value = value.High, Index = index})
+                        .First(x => x.Value >= pointB.Value + ScopeStopeSimple);
+
+                    if (profitPoint.Index == stopPoint.Index)
+                    {
+                        // Нет возможности точно определить что было в первую очередь
+                        TsLabContext.Log(
+                            $"Один пятисекундный бар коснулся и стопа и профита, acctualBar = {actualBar}", new Color(),
+                            true);
+                        continue;
+                    }
+
+                    // Simple модель закрылась по профиту
+                    if (profitPoint.Index < stopPoint.Index) continue;
+                }
+
+                if (TsLabCompressSource.HighPrices[pointE.Index] - pointB.Value > 400) continue;
+                if (indexCompressBar - pointE.Index > WeitCountBar) continue;
+
+                if (pointE.Index != indexCompressBar)
+                {
+                    var validateMax = TsLabCompressSource.HighPrices.
+                        Skip(pointE.Index + 1).Take(indexCompressBar - pointE.Index).
+                        Max();
+                    if (pointE.Value <= validateMax) continue;
+                }
+
+                modelBuyList.Add(pointE.Value);
+                Model.BuySignal[actualBar] = 1;
+            }
+
+            TsLabContext.StoreObject("BuyModel", modelBuyList);
+        }
 
         private void SetStopToOpenPosition(int actualBar)
         {
@@ -323,11 +431,29 @@ namespace TSlabScripts.SimpleAfter
                 }
                 TsLabContext.StoreObject("SellList", sellList);
             }
+
+            var modelBuyList = (List<double>)TsLabContext.LoadObject("BuyModel") ?? new List<double>();
+            if (modelBuyList.Any())
+            {
+                var buyList = ValidateBuyModel(modelBuyList, actualBar);
+                foreach (double value in buyList)
+                {
+                    TsLabSource.Positions.BuyIfLess(actualBar + 1, Value, value, Slippage, "buy_" + value);
+                }
+                TsLabContext.StoreObject("BuyList", buyList);
+            }
         }
 
         private List<double> ValidateBuyModel(List<double> modelBuyList, int actualBar)
         {
-            return new List<double>();
+            double lastMax = double.MinValue;
+
+            for (var i = actualBar; i >= 0 && !SimpleService.IsStartFiveMinutesBar(TsLabSource, i); i--)
+            {
+                lastMax = TsLabSource.HighPrices[i] > lastMax ? TsLabSource.HighPrices[i] : lastMax;
+            }
+
+            return modelBuyList.Where(value => value > lastMax).ToList();
         }
 
         private List<double> ValidateSellModel(List<double> modelSellList, int actualBar)
