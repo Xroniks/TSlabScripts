@@ -112,26 +112,26 @@ namespace TSlabScripts.Simple
         {
             var modelBuyList = new List<double>();
 
-            for (var pointA = new Point{Index = indexCompressBar - 1}; 
-                pointA.Index >= indexBeginDayBar && pointA.Index >= 0; 
-                pointA.Index--)
+            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, indexCompressBar);
-                var pointB = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, pointC.Index);
+                var pointB = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
-                if (pointB.Index == pointA.Index) continue;
+                if (pointB.Index == realPointA.Index) continue;
+
+                // Проверм размер фигуры A-B
+                var ab = pointB.Value - realPointA.Value;
+                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+
+                var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
 
-                // Проверм размер фигуры A-B
-                var ab = pointB.Value - pointA.Value;
-                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-                
                 // Проверям размер модели B-C
                 if (pointB.Value - pointC.Value <= LengthSegmentBC ||
-                    pointC.Value - pointA.Value < 0) continue;
+                    pointC.Value - realPointA.Value < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -155,26 +155,26 @@ namespace TSlabScripts.Simple
         {
             var modelSellList = new List<double>();
 
-            for (var pointA = new Point { Index = indexCompressBar - 1 }; 
-                pointA.Index >= indexBeginDayBar && pointA.Index >= 0; 
-                pointA.Index--)
+            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, indexCompressBar);
-                var pointB = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, pointC.Index);
+                var pointB = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
-                if (pointB.Index == pointA.Index) continue;
+                if (pointB.Index == realPointA.Index) continue;
+
+                // Проверм размер фигуры A-B
+                var ab = realPointA.Value - pointB.Value;
+                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+
+                var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
 
-                // Проверм размер фигуры A-B
-                var ab = pointA.Value - pointB.Value;
-                if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-
                 // Проверям размер модели B-C
                 if (pointC.Value - pointB.Value <= LengthSegmentBC ||
-                    pointA.Value - pointC.Value < 0) continue;
+                    realPointA.Value - pointC.Value < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
