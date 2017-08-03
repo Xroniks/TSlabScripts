@@ -5,8 +5,6 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSlabScripts.Simple", "src\TSlabScripts.Simple\TSlabScripts.Simple.csproj", "{35BD3E57-14DD-4948-8625-62E8137F507F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSlabScripts.Simple.Tests", "src\TSlabScripts.Simple.Tests\TSlabScripts.Simple.Tests.csproj", "{61821D8A-9160-4B1C-8703-75827E3EC502}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSlabScripts.SimpleAfter", "src\TSlabScripts.SimpleAfter\TSlabScripts.SimpleAfter.csproj", "{51C59080-CC2D-49EA-8CC0-A65A64E09667}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSlabScripts.Common", "src\TSlabScripts.Common\TSlabScripts.Common.csproj", "{DBAFB5D3-086D-4DA4-8FEA-4D21E0B6CE00}"
@@ -21,10 +19,6 @@ Global
 		{35BD3E57-14DD-4948-8625-62E8137F507F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{35BD3E57-14DD-4948-8625-62E8137F507F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{35BD3E57-14DD-4948-8625-62E8137F507F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{61821D8A-9160-4B1C-8703-75827E3EC502}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{61821D8A-9160-4B1C-8703-75827E3EC502}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{61821D8A-9160-4B1C-8703-75827E3EC502}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{61821D8A-9160-4B1C-8703-75827E3EC502}.Release|Any CPU.Build.0 = Release|Any CPU
 		{51C59080-CC2D-49EA-8CC0-A65A64E09667}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{51C59080-CC2D-49EA-8CC0-A65A64E09667}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{51C59080-CC2D-49EA-8CC0-A65A64E09667}.Release|Any CPU.ActiveCfg = Release|Any CPU
