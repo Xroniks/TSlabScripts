@@ -114,8 +114,8 @@ namespace TSlabScripts.Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, indexPointA, indexCompressBar);
-                var realPointA = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, indexPointA, pointB.Index);
+                var pointB = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -124,7 +124,7 @@ namespace TSlabScripts.Simple
                 var ab = pointB.Value - realPointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, pointB.Index, indexCompressBar);
+                var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -157,8 +157,8 @@ namespace TSlabScripts.Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = SimpleService.GetLowPrices(TsLabCompressSource.LowPrices, indexPointA, indexCompressBar);
-                var realPointA = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, indexPointA, pointB.Index);
+                var pointB = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, indexCompressBar);
+                var realPointA = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, pointB.Index);
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -167,7 +167,7 @@ namespace TSlabScripts.Simple
                 var ab = realPointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
-                var pointC = SimpleService.GetHighPrices(TsLabCompressSource.HighPrices, pointB.Index, indexCompressBar);
+                var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;

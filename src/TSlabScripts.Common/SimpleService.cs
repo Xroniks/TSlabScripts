@@ -8,17 +8,17 @@ namespace TSlabScripts.Common
 {
     public class SimpleService
     {
-        public static Point GetLowPrices(IList<double> collection, int leftSide, int rigthSide)
+        public static Point GetLowPrices(ISecurity source, int leftSide, int rigthSide)
         {
-            return collection.Select((value, index) => new Point { Value = value, Index = index }).
+            return source.LowPrices.Select((value, index) => new Point { Value = value, Index = index }).
                     Skip(leftSide).
                     Take(rigthSide - leftSide + 1).
                     OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
         }
 
-        public static Point GetHighPrices(IList<double> collection, int leftSide, int rigthSide)
+        public static Point GetHighPrices(ISecurity source, int leftSide, int rigthSide)
         {
-            return collection.Select((value, index) => new Point { Value = value, Index = index }).
+            return source.HighPrices.Select((value, index) => new Point { Value = value, Index = index }).
                     Skip(leftSide).
                     Take(rigthSide - leftSide + 1).
                     OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
