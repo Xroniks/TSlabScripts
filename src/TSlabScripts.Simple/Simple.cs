@@ -112,26 +112,24 @@ namespace TSlabScripts.Simple
         {
             var modelBuyList = new List<double>();
 
-            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
+            for (var pointA = new Point {Index = indexCompressBar - 1};
+                pointA.Index >= indexBeginDayBar && pointA.Index >= 0;
+                pointA.Index--)
             {
-                var pointB = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, indexCompressBar);
-                var realPointA = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, pointB.Index);
+                var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, indexCompressBar, false, true);
+                var pointB = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, pointC.Index, true, true);
+                pointA.Value = TsLabCompressSource.LowPrices[pointA.Index];
 
-                // Точки A и B не могут быть на одном баре
-                if (pointB.Index == realPointA.Index) continue;
+                if (pointB.Index == pointA.Index) continue;
+                if (pointB.Index == pointC.Index) continue;
 
                 // Проверм размер фигуры A-B
-                var ab = pointB.Value - realPointA.Value;
+                var ab = pointB.Value - pointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-
-                var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
-
-                // Точки B и C не могут быть на одном баре
-                if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
                 if (pointB.Value - pointC.Value <= LengthSegmentBC ||
-                    pointC.Value - realPointA.Value < 0) continue;
+                    pointC.Value - pointA.Value < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -155,26 +153,24 @@ namespace TSlabScripts.Simple
         {
             var modelSellList = new List<double>();
 
-            for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
+            for (var pointA = new Point { Index = indexCompressBar - 1 };
+                pointA.Index >= indexBeginDayBar && pointA.Index >= 0;
+                pointA.Index--)
             {
-                var pointB = SimpleService.GetLowPrices(TsLabCompressSource, indexPointA, indexCompressBar);
-                var realPointA = SimpleService.GetHighPrices(TsLabCompressSource, indexPointA, pointB.Index);
+                var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, indexCompressBar, false, true);
+                var pointB = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, pointC.Index, true, true);
+                pointA.Value = TsLabCompressSource.HighPrices[pointA.Index];
 
-                // Точки A и B не могут быть на одном баре
-                if (pointB.Index == realPointA.Index) continue;
+                if (pointB.Index == pointA.Index) continue;
+                if (pointB.Index == pointC.Index) continue;
 
                 // Проверм размер фигуры A-B
-                var ab = realPointA.Value - pointB.Value;
+                var ab = pointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-
-                var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointB.Index, indexCompressBar);
-
-                // Точки B и C не могут быть на одном баре
-                if (pointB.Index == pointC.Index) continue;
 
                 // Проверям размер модели B-C
                 if (pointC.Value - pointB.Value <= LengthSegmentBC ||
-                    realPointA.Value - pointC.Value < 0) continue;
+                    pointA.Value - pointC.Value < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)

@@ -8,19 +8,19 @@ namespace TSlabScripts.Common
 {
     public class SimpleService
     {
-        public static Point GetLowPrices(ISecurity source, int leftSide, int rigthSide)
+        public static Point GetLowPrices(ISecurity source, int leftSide, int rigthSide, bool includeLeft = false, bool includeRigth = false)
         {
             return source.LowPrices.Select((value, index) => new Point { Value = value, Index = index }).
-                    Skip(leftSide).
-                    Take(rigthSide - leftSide + 1).
+                    Skip(leftSide + (includeLeft ? 0 : 1)).
+                    Take(rigthSide - leftSide + (includeLeft != includeRigth ? 0 : (includeRigth ? 1 : -1))).
                     OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
         }
 
-        public static Point GetHighPrices(ISecurity source, int leftSide, int rigthSide)
+        public static Point GetHighPrices(ISecurity source, int leftSide, int rigthSide, bool includeLeft = false, bool includeRigth = false)
         {
             return source.HighPrices.Select((value, index) => new Point { Value = value, Index = index }).
-                    Skip(leftSide).
-                    Take(rigthSide - leftSide + 1).
+                    Skip(leftSide + (includeLeft ? 0 : 1)).
+                    Take(rigthSide - leftSide + (includeLeft != includeRigth ? 0 : (includeRigth ? 1 : -1))).
                     OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
         }
 
