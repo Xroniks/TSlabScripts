@@ -118,18 +118,18 @@ namespace TSlabScripts.Simple
             {
                 var pointC = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, indexCompressBar, false, true);
                 var pointB = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, pointC.Index, true, true);
-                pointA.Value = TsLabCompressSource.LowPrices[pointA.Index];
+                pointA.Low = TsLabCompressSource.LowPrices[pointA.Index];
 
                 if (pointB.Index == pointA.Index) continue;
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверм размер фигуры A-B
-                var ab = pointB.Value - pointA.Value;
+                var ab = pointB.High - pointA.Low;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
                 // Проверям размер модели B-C
-                if (pointB.Value - pointC.Value <= LengthSegmentBC ||
-                    pointC.Value - pointA.Value < 0) continue;
+                if (pointB.High - pointC.Low <= LengthSegmentBC ||
+                    pointC.Low - pointA.Low < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -138,10 +138,10 @@ namespace TSlabScripts.Simple
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Max();
-                    if (pointB.Value - ScopeDelta <= validateMax) continue;
+                    if (pointB.High - ScopeDelta <= validateMax) continue;
                 }
 
-                modelBuyList.Add(pointB.Value);
+                modelBuyList.Add(pointB.High);
 
                 Model.BuySignal[actualBar] = 1;
             }
@@ -159,18 +159,18 @@ namespace TSlabScripts.Simple
             {
                 var pointC = SimpleService.GetHighPrices(TsLabCompressSource, pointA.Index, indexCompressBar, false, true);
                 var pointB = SimpleService.GetLowPrices(TsLabCompressSource, pointA.Index, pointC.Index, true, true);
-                pointA.Value = TsLabCompressSource.HighPrices[pointA.Index];
+                pointA.High = TsLabCompressSource.HighPrices[pointA.Index];
 
                 if (pointB.Index == pointA.Index) continue;
                 if (pointB.Index == pointC.Index) continue;
 
                 // Проверм размер фигуры A-B
-                var ab = pointA.Value - pointB.Value;
+                var ab = pointA.High - pointB.Low;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
 
                 // Проверям размер модели B-C
-                if (pointC.Value - pointB.Value <= LengthSegmentBC ||
-                    pointA.Value - pointC.Value < 0) continue;
+                if (pointC.High - pointB.Low <= LengthSegmentBC ||
+                    pointA.High - pointC.High < 0) continue;
 
                 // Проверка на пересечение
                 if (indexCompressBar != pointC.Index)
@@ -179,10 +179,10 @@ namespace TSlabScripts.Simple
                         Skip(pointC.Index + 1).
                         Take(indexCompressBar - pointC.Index).
                         Min();
-                    if (pointB.Value + ScopeDelta >= validateMin) continue;
+                    if (pointB.Low + ScopeDelta >= validateMin) continue;
                 }
 
-                modelSellList.Add(pointB.Value);
+                modelSellList.Add(pointB.Low);
 
                 Model.SellSignal[actualBar] = 1;
             }

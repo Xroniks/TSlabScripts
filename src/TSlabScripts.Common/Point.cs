@@ -4,6 +4,8 @@ namespace TSlabScripts.Common
     {
         public int Index { get; set; }
 
-        public double Value { get; set; }
+        public double High { get; set; }
+
+        public double Low { get; set; }
     }
 }

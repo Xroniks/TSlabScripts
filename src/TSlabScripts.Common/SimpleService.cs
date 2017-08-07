@@ -10,18 +10,18 @@ namespace TSlabScripts.Common
     {
         public static Point GetLowPrices(ISecurity source, int leftSide, int rigthSide, bool includeLeft = false, bool includeRigth = false)
         {
-            return source.LowPrices.Select((value, index) => new Point { Value = value, Index = index }).
+            return source.LowPrices.Select((value, index) => new Point { Low = value, Index = index }).
                     Skip(leftSide + (includeLeft ? 0 : 1)).
                     Take(rigthSide - leftSide + (includeLeft != includeRigth ? 0 : (includeRigth ? 1 : -1))).
-                    OrderBy(x => x.Value).ThenByDescending(x => x.Index).First();
+                    OrderBy(x => x.Low).ThenByDescending(x => x.Index).First();
         }
 
         public static Point GetHighPrices(ISecurity source, int leftSide, int rigthSide, bool includeLeft = false, bool includeRigth = false)
         {
-            return source.HighPrices.Select((value, index) => new Point { Value = value, Index = index }).
+            return source.HighPrices.Select((value, index) => new Point { High = value, Index = index }).
                     Skip(leftSide + (includeLeft ? 0 : 1)).
                     Take(rigthSide - leftSide + (includeLeft != includeRigth ? 0 : (includeRigth ? 1 : -1))).
-                    OrderBy(x => x.Value).ThenBy(x => x.Index).Last();
+                    OrderBy(x => x.High).ThenBy(x => x.Index).Last();
         }
 
         public static int GetIndexActualCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
