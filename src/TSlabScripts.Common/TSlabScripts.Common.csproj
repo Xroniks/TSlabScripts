@@ -49,7 +49,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ModelSignal.cs" />
+    <Compile Include="ModelIndicator.cs" />
     <Compile Include="SimpleHealper.cs" />
     <Compile Include="Point.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

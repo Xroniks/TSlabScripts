@@ -22,7 +22,7 @@ namespace TSlabScripts.Common
             }
         }
 
-        public static void RenderModelIndicator(IContext context, ModelSignal model)
+        public static void RenderModelIndicator(IContext context, ModelIndicator model)
         {
             var buyPain = context.CreatePane("BuySignal", 15, false);
             buyPain.AddList("BuySignal", model.BuySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,

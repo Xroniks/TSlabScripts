@@ -2,9 +2,9 @@
 
 namespace TSlabScripts.Common
 {
-    public class ModelSignal
+    public class ModelIndicator
     {
-        public ModelSignal(int count)
+        public ModelIndicator(int count)
         {
             BuySignal = new List<double>();
             SellSignal = new List<double>();

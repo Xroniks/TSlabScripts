@@ -25,7 +25,7 @@ namespace TSlabScripts.Simple
         private static IContext TsLabContext { get; set; }
         private static ISecurity TsLabSource { get; set; }
         private static ISecurity TsLabCompressSource { get; set; }
-        private ModelSignal Model { get; set; }
+        private ModelIndicator ModelIndicator { get; set; }
 
         public virtual void Execute(IContext ctx, ISecurity source)
         {
@@ -43,14 +43,14 @@ namespace TSlabScripts.Simple
             TsLabCompressSource = TsLabSource.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
 
             SimpleHealper.RenderBars(TsLabContext, TsLabSource, TsLabCompressSource);
-            Model = new ModelSignal(TsLabSource.Bars.Count);
+            ModelIndicator = new ModelIndicator(TsLabSource.Bars.Count);
 
             for (var historyBar = 1; historyBar <= TsLabSource.Bars.Count - 1; historyBar++)
             {
                 Trading(historyBar);
             }
 
-            SimpleHealper.RenderModelIndicator(TsLabContext, Model);
+            SimpleHealper.RenderModelIndicator(TsLabContext, ModelIndicator);
         }
 
         private void Trading(int actualBar)
@@ -112,7 +112,7 @@ namespace TSlabScripts.Simple
         {
             var modelBuyList = new List<double>();
 
-            for (var pointA = new Point {Index = indexCompressBar - 1};
+            for (var pointA = new Point { Index = indexCompressBar - 1 };
                 pointA.Index >= indexBeginDayBar && pointA.Index >= 0;
                 pointA.Index--)
             {
@@ -143,7 +143,7 @@ namespace TSlabScripts.Simple
 
                 modelBuyList.Add(pointB.High);
 
-                Model.BuySignal[actualBar] = 1;
+                ModelIndicator.BuySignal[actualBar] = 1;
             }
 
             TsLabContext.StoreObject("BuyModel", modelBuyList);
@@ -184,7 +184,7 @@ namespace TSlabScripts.Simple
 
                 modelSellList.Add(pointB.Low);
 
-                Model.SellSignal[actualBar] = 1;
+                ModelIndicator.SellSignal[actualBar] = 1;
             }
 
             TsLabContext.StoreObject("SellModel", modelSellList);
@@ -222,11 +222,6 @@ namespace TSlabScripts.Simple
             }
 
             var positionList = TsLabSource.Positions.GetActiveForBar(actualBar);
-
-            foreach (var position in TsLabSource.Positions)
-            {
-                position.
-            }
 
             foreach (var position in positionList)
             {
