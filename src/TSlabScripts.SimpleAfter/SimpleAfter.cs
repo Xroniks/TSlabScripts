@@ -81,6 +81,7 @@ namespace TSlabScripts.SimpleAfter
                 var indexCompressBar = SimpleService.GetIndexActualCompressBar(TsLabCompressSource, dateActualBar, indexBeginDayBar);
 
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
+                SearchAfterSellModel(indexCompressBar, actualBar);
                 //SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
             }
 
@@ -115,7 +116,7 @@ namespace TSlabScripts.SimpleAfter
 
         private void SearchSellModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
         {
-            var modelSellList = (List<SimpleSellModel>)TsLabContext.LoadObject("SimpleSellModel") ?? new List<SimpleSellModel>();
+            var simpleSellModels = (List<SimpleSellModel>)TsLabContext.LoadObject("SimpleSellModels") ?? new List<SimpleSellModel>();
 
             for (var pointA = new Point { Index = indexCompressBar - 1 };
                 pointA.Index >= indexBeginDayBar && pointA.Index >= 0;
@@ -134,17 +135,19 @@ namespace TSlabScripts.SimpleAfter
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
                 if (bc <= LengthSegmentBC || ac < 0) continue;
 
-                modelSellList.Add(new SimpleSellModel {PointA = pointA, PointB = pointB, PointC = pointC});
+                simpleSellModels.Add(new SimpleSellModel {PointA = pointA, PointB = pointB, PointC = pointC});
             }
 
-            TsLabContext.StoreObject("SimpleSellModel", modelSellList);
+            TsLabContext.StoreObject("SimpleSellModels", simpleSellModels);
+            
         }
 
-        private void SearchAfterSellModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
+        private void SearchAfterSellModel(int indexCompressBar, int actualBar)
         {
-            var modelSellList = (List<SimpleSellModel>)TsLabContext.LoadObject("SimpleSellModel") ?? new List<SimpleSellModel>();
+            var simpleSellModels = (List<SimpleSellModel>)TsLabContext.LoadObject("SimpleSellModels") ?? new List<SimpleSellModel>();
+            var sellModels = new List<double>();
 
-            foreach (var model in modelSellList)
+            foreach (var model in simpleSellModels)
             {
                 // Входа по Simple еще не было
                 if (indexCompressBar == model.PointC.Index) continue;
@@ -271,16 +274,21 @@ namespace TSlabScripts.SimpleAfter
                     {
                         // Нет возможности точно определить что было в первую очередь
                         TsLabContext.Log(
-                            $"Один пятисекундный бар коснулся и стопа и профита, acctualBar = {actualBar}", new Color(),
-                            true);
+                            $"Один пятисекундный бар коснулся и стопа и профита profitPoint.Index == stopPoint.Index = {stopPoint.Index}, acctualBar = {actualBar}",
+                            new Color(), true);
+                        model.PointB = null;
                         continue;
                     }
 
                     // Simple модель закрылась по профиту
-                    if (profitPoint.Index < stopPoint.Index) continue;
+                    if (profitPoint.Index < stopPoint.Index)
+                    {
+                        model.PointB = null;
+                        continue;
+                    }
                 }
 
-                if (pointB.High - pointE.Low > 400) continue;
+                //if (model.PointB.High - pointE.Low > 400) continue;
                 if (indexCompressBar - pointE.Index > WeitCountBar) continue;
 
                 if (pointE.Index != indexCompressBar)
@@ -288,9 +296,18 @@ namespace TSlabScripts.SimpleAfter
                     var validateMin = TsLabCompressSource.LowPrices.
                         Skip(pointE.Index + 1).Take(indexCompressBar - pointE.Index).
                         Min();
-                    if (pointE.Low >= validateMin) continue;
+                    if (pointE.Low >= validateMin)
+                    {
+                        model.PointB = null;
+                        continue;
+                    }
                 }
+
+                sellModels.Add(pointE.Low);
+                Model.SellSignal[actualBar] = 1;               
             }
+            TsLabContext.StoreObject("SimpleSellModels", simpleSellModels.Where(x => x.PointB != null).ToList());
+            TsLabContext.StoreObject("SellModels", sellModels);
         }
 
         //private void SearchBuyModel(int indexCompressBar, int indexBeginDayBar, int actualBar)
@@ -446,26 +463,26 @@ namespace TSlabScripts.SimpleAfter
 
         private void SetStopToOpenPosition(int actualBar)
         {
-            var modelSellList = (List<double>)TsLabContext.LoadObject("SellModel") ?? new List<double>();
-            if (modelSellList.Any())
+            var sellModels = (List<double>)TsLabContext.LoadObject("SellModels") ?? new List<double>();
+            if (sellModels.Any())
             {
-                var sellList = ValidateSellModel(modelSellList, actualBar);
-                foreach (double value in sellList)
+                sellModels = ValidateSellModel(sellModels, actualBar);
+                foreach (double value in sellModels)
                 {
                     TsLabSource.Positions.SellIfLess(actualBar + 1, Value, value, Slippage, "sell_" + value);
                 }
-                TsLabContext.StoreObject("SellList", sellList);
+                TsLabContext.StoreObject("SellModels", sellModels);
             }
 
-            var modelBuyList = (List<double>)TsLabContext.LoadObject("BuyModel") ?? new List<double>();
-            if (modelBuyList.Any())
+            var buyModels = (List<double>)TsLabContext.LoadObject("BuyModels") ?? new List<double>();
+            if (buyModels.Any())
             {
-                var buyList = ValidateBuyModel(modelBuyList, actualBar);
-                foreach (double value in buyList)
+                buyModels = ValidateBuyModel(buyModels, actualBar);
+                foreach (double value in buyModels)
                 {
                     TsLabSource.Positions.BuyIfLess(actualBar + 1, Value, value, Slippage, "buy_" + value);
                 }
-                TsLabContext.StoreObject("BuyList", buyList);
+                TsLabContext.StoreObject("BuyModels", buyModels);
             }
         }
 
@@ -481,7 +498,7 @@ namespace TSlabScripts.SimpleAfter
             return modelBuyList.Where(value => value > lastMax).ToList();
         }
 
-        private List<double> ValidateSellModel(List<double> modelSellList, int actualBar)
+        private List<double> ValidateSellModel(List<double> sellModels, int actualBar)
         {
             double lastMin = double.MaxValue;
 
@@ -490,7 +507,7 @@ namespace TSlabScripts.SimpleAfter
                 lastMin = TsLabSource.LowPrices[i] < lastMin ? TsLabSource.LowPrices[i] : lastMin;
             }
 
-            return modelSellList.Where(value => value < lastMin).ToList();
+            return sellModels.Where(value => value < lastMin).ToList();
         }
     }
 }

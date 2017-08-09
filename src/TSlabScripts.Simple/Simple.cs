@@ -223,6 +223,11 @@ namespace TSlabScripts.Simple
 
             var positionList = TsLabSource.Positions.GetActiveForBar(actualBar);
 
+            foreach (var position in TsLabSource.Positions)
+            {
+                position.
+            }
+
             foreach (var position in positionList)
             {
                 var arr = position.EntrySignalName.Split('_');
