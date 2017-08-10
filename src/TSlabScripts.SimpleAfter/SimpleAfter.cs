@@ -80,7 +80,10 @@ namespace TSlabScripts.SimpleAfter
 
                 SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
+            }
 
+            if (HasAfterCloseBar == 1)
+            {
                 SetStopToOpenAfterCloseBar(actualBar);
             }
 
@@ -89,23 +92,37 @@ namespace TSlabScripts.SimpleAfter
 
         private void SetStopToOpenAfterCloseBar(int actualBar)
         {
-            var tempTime = new TimeSpan(0, 50, 0);
+            var tempTime = new TimeSpan(0, 50, 0); // 50 минут == 10 пятиминутных быров == 600 пятисекундных баров
             var positions = TsLabSource.Positions
-                .Where(x => !x.IsActive && x.ExitBar.Date - TsLabSource.Bars[actualBar].Date <= tempTime);
+                .Where(x => !x.IsActive && x.Profit() < 0 && TsLabSource.Bars[actualBar].Date - x.ExitBar.Date <= tempTime).ToList();
 
             foreach (var position in positions)
             {
-                var valueOpen = TsLabSource.Bars.Where(x =>
+                var startDate = new DateTime(
+                        position.ExitBar.Date.Year,
+                        position.ExitBar.Date.Month,
+                        position.ExitBar.Date.Day,
+                        position.ExitBar.Date.Hour,
+                        Convert.ToInt32(Math.Floor(Convert.ToDouble(position.ExitBar.Date.Minute / 5)))*5,
+                        0);
+                var endDate = startDate.AddMinutes(4).AddSeconds(55);
+
+                var fistBarAfterEntry = TsLabSource.Bars.FirstOrDefault(x => x.Date > endDate);
+                if (fistBarAfterEntry == null) continue;
+                var indexFistBarAfterEntry = TsLabSource.Bars.IndexOf(fistBarAfterEntry);
+
+                if (position.IsLong)
                 {
-                    var startDate = new DateTime(x.Date.Year, x.Date.Month, x.Date.Day, x.Date.Hour,
-                        x.Date.Minute >= 5 ? 5 : 0, 0);
-                    var endDate = startDate.AddMinutes(5).AddSeconds(55);
-
-                    return x.Date >= startDate && x.Date <= endDate;
-                }).Min(x => x.Low);
-
-                TsLabSource.Positions.SellIfLess(actualBar + 1, Shares, valueOpen, Slippage, "sellAfter_" + valueOpen);
-
+                    var valueOpen = TsLabSource.Bars.Where(x => x.Date >= startDate && x.Date <= endDate).Min(x => x.Low);
+                    if (TsLabSource.LowPrices.Skip(indexFistBarAfterEntry).Take(actualBar - indexFistBarAfterEntry + 1).Any(x => x < valueOpen)) continue;
+                    TsLabSource.Positions.SellIfLess(actualBar + 1, Shares, valueOpen, Slippage,"sellAfter_" + valueOpen);
+                }
+                else
+                {
+                    var valueOpen = TsLabSource.Bars.Where(x => x.Date >= startDate && x.Date <= endDate).Max(x => x.High);
+                    if (TsLabSource.HighPrices.Skip(indexFistBarAfterEntry).Take(actualBar - indexFistBarAfterEntry + 1).Any(x => x > valueOpen)) continue;
+                    TsLabSource.Positions.BuyIfGreater(actualBar + 1, Shares, valueOpen, "buyAfter_" + valueOpen);
+                }
             }
         }
 
