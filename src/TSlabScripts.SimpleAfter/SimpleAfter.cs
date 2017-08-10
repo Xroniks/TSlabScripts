@@ -19,6 +19,7 @@ namespace TSlabScripts.SimpleAfter
         public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
         public OptimProperty HasAfter = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty HasAfterCloseBar = new OptimProperty(0, 0, 1, 1);
 
         private readonly TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         private readonly TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
@@ -79,9 +80,33 @@ namespace TSlabScripts.SimpleAfter
 
                 SearchBuyModel(indexCompressBar, indexBeginDayBar, actualBar);
                 SearchSellModel(indexCompressBar, indexBeginDayBar, actualBar);
+
+                SetStopToOpenAfterCloseBar(actualBar);
             }
 
             SetStopToOpenPosition(actualBar);
+        }
+
+        private void SetStopToOpenAfterCloseBar(int actualBar)
+        {
+            var tempTime = new TimeSpan(0, 50, 0);
+            var positions = TsLabSource.Positions
+                .Where(x => !x.IsActive && x.ExitBar.Date - TsLabSource.Bars[actualBar].Date <= tempTime);
+
+            foreach (var position in positions)
+            {
+                var valueOpen = TsLabSource.Bars.Where(x =>
+                {
+                    var startDate = new DateTime(x.Date.Year, x.Date.Month, x.Date.Day, x.Date.Hour,
+                        x.Date.Minute >= 5 ? 5 : 0, 0);
+                    var endDate = startDate.AddMinutes(5).AddSeconds(55);
+
+                    return x.Date >= startDate && x.Date <= endDate;
+                }).Min(x => x.Low);
+
+                TsLabSource.Positions.SellIfLess(actualBar + 1, Shares, valueOpen, Slippage, "sellAfter_" + valueOpen);
+
+            }
         }
 
         private void SetStopToOpenPosition(int actualBar)
