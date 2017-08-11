@@ -94,7 +94,10 @@ namespace TSlabScripts.SimpleAfter
         {
             var tempTime = new TimeSpan(0, 50, 0); // 50 минут == 10 пятиминутных быров == 600 пятисекундных баров
             var positions = TsLabSource.Positions
-                .Where(x => !x.IsActive && x.Profit() < 0 && TsLabSource.Bars[actualBar].Date - x.ExitBar.Date <= tempTime).ToList();
+                .Where(x => !x.IsActive 
+                    && x.Profit() < 0 
+                    && TsLabSource.Bars[actualBar].Date - x.ExitBar.Date <= tempTime
+                    && (x.EntrySignalName.Split('_')[0] != "sellAfter_" || x.EntrySignalName.Split('_')[0] != "buyAfter_")).ToList();
 
             foreach (var position in positions)
             {
@@ -110,6 +113,7 @@ namespace TSlabScripts.SimpleAfter
                 var fistBarAfterEntry = TsLabSource.Bars.FirstOrDefault(x => x.Date > endDate);
                 if (fistBarAfterEntry == null) continue;
                 var indexFistBarAfterEntry = TsLabSource.Bars.IndexOf(fistBarAfterEntry);
+                if (indexFistBarAfterEntry > actualBar) continue;
 
                 if (position.IsLong)
                 {
