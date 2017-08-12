@@ -13,13 +13,17 @@ namespace TSlabScripts.SimpleAfter
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Shares = new OptimProperty(1, 0, 100, 1);
-        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, double.MaxValue, 10);
+        public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, double.MaxValue, 10);
+        public OptimProperty ScopeDelta = new OptimProperty(50, 0, double.MaxValue, 10);
+        public OptimProperty ScopeProfite = new OptimProperty(100, 0, double.MaxValue, 10);
+        public OptimProperty ScopeStope = new OptimProperty(300, 0, double.MaxValue, 10);
         public OptimProperty HasAfter = new OptimProperty(0, 0, 1, 1);
         public OptimProperty HasAfterCloseBar = new OptimProperty(0, 0, 1, 1);
+
+        public OptimProperty WaitAfterClosePosition = new OptimProperty(50, 1, 1000, 1);
+        public OptimProperty ScopeProfiteAfter = new OptimProperty(200, 0, double.MaxValue, 10);
+        public OptimProperty ScopeStopAfter = new OptimProperty(250, 0, double.MaxValue, 10);
 
         private readonly TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         private readonly TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
@@ -92,7 +96,7 @@ namespace TSlabScripts.SimpleAfter
 
         private void SetStopToOpenAfterCloseBar(int actualBar)
         {
-            var tempTime = new TimeSpan(0, 50, 0); // 50 минут == 10 пятиминутных быров == 600 пятисекундных баров
+            var tempTime = new TimeSpan(0, WaitAfterClosePosition, 0);
             var positions = TsLabSource.Positions
                 .Where(x => !x.IsActive 
                     && x.Profit() < 0 
@@ -296,12 +300,12 @@ namespace TSlabScripts.SimpleAfter
                         }
                         break;
                     case "sellAfter":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - 200, "sellAfterCloseProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + 250, Slippage, "sellAfterCloseStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeProfiteAfter, "sellAfterCloseProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeStopAfter, Slippage, "sellAfterCloseStop");
                         break;
                     case "buyAfter":
-                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + 200, "buyAfterCloseProfit");
-                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - 250, Slippage, "buyAfterCloseStop");
+                        position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[1]) + ScopeProfiteAfter, "buyAfterCloseProfit");
+                        position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[1]) - ScopeStopAfter, Slippage, "buyAfterCloseStop");
                         break;
                 }
             }

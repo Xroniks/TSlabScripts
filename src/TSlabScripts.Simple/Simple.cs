@@ -13,11 +13,11 @@ namespace TSlabScripts.Simple
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 1);
-        public OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeProfite = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
-        public OptimProperty ScopeStope = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
+        public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, double.MaxValue, 10);
+        public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, double.MaxValue, 10);
+        public OptimProperty ScopeDelta = new OptimProperty(50, 0, double.MaxValue, 10);
+        public OptimProperty ScopeProfite = new OptimProperty(100, 0, double.MaxValue, 10);
+        public OptimProperty ScopeStope = new OptimProperty(300, 0, double.MaxValue, 10);
 
         private readonly TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         private readonly TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
