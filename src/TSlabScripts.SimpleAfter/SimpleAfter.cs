@@ -101,7 +101,7 @@ namespace TSlabScripts.SimpleAfter
                 .Where(x => !x.IsActive 
                     && x.Profit() < 0 
                     && TsLabSource.Bars[actualBar].Date - x.ExitBar.Date <= tempTime
-                    && (x.EntrySignalName.Split('_')[0] != "sellAfter_" || x.EntrySignalName.Split('_')[0] != "buyAfter_")).ToList();
+                    && (x.EntrySignalName.Split('_')[0] == "sell" || x.EntrySignalName.Split('_')[0] == "buy")).ToList();
 
             foreach (var position in positions)
             {
