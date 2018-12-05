@@ -9,7 +9,7 @@ using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class Simple : IExternalScript
+    public class SimpleForOneMinutes : IExternalScript
     {
         public OptimProperty Slippage = new OptimProperty(30, 0, 100, 10);
         public OptimProperty Value = new OptimProperty(1, 0, 100, 1);
@@ -23,9 +23,9 @@ namespace TSLabScripts
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
-        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
+        public TimeSpan TimeBeginBar = new TimeSpan(10, 00, 55);
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
-        public TimeSpan FiveMinutes = new TimeSpan(0, 5, 0);
+        public TimeSpan OneMinutes = new TimeSpan(0, 1, 0);
         public TimeSpan DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
         public TimeSpan DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
 
@@ -35,7 +35,7 @@ namespace TSLabScripts
             if (!GetValidTimeFrame(ctx, source)) return;
 
             // Компрессия исходного таймфрейма в пятиминутный
-            var compressSource = source.CompressTo(new Interval(5, DataIntervals.MINUTE), 0, 200, 0);
+            var compressSource = source.CompressTo(new Interval(1, DataIntervals.MINUTE), 0, 200, 0);
 
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 70, false);
@@ -87,7 +87,7 @@ namespace TSLabScripts
 
             var totalSecondsActualBar = source.Bars[actualBar].Date.TimeOfDay.TotalSeconds;
 
-            if ((totalSecondsActualBar + 5) % 300 == 0)
+            if ((totalSecondsActualBar + 5) % 60 == 0)
             {
                 var dateActualBar = source.Bars[actualBar].Date;
 
@@ -261,7 +261,7 @@ namespace TSLabScripts
         {
             double lastMax = double.MinValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 60 != 0; i--)
             {
                 lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
             }
@@ -273,7 +273,7 @@ namespace TSLabScripts
         {
             double lastMin = double.MaxValue;
 
-            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 300 != 0; i--)
+            for (var i = actualBar; i >= 0 && (source.Bars[i].Date.TimeOfDay.TotalSeconds + 5) % 60 != 0; i--)
             {
                 lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
             }
@@ -330,7 +330,7 @@ namespace TSLabScripts
         private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
             var indexCompressBar = indexBeginDayBar;
-            var tempTime = dateActualBar - FiveMinutes - FiveSeconds;
+            var tempTime = dateActualBar - OneMinutes - FiveSeconds;
             while (compressSource.Bars[indexCompressBar].Date < tempTime)
             {
                 indexCompressBar++;
