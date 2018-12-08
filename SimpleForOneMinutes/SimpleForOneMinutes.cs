@@ -174,7 +174,7 @@ namespace TSLabScripts
                 
                 // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1
-                   && pointB.Index - realPointA.Index > 0
+                   && pointB.Index - realPointA.Index - 1 > 0
                    && compressSource.HighPrices
                        .Skip(realPointA.Index + 1)
                        .Take(pointB.Index - realPointA.Index - 1)
@@ -195,7 +195,7 @@ namespace TSLabScripts
                 
                 // Проверяем приближение HighPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
-                   && pointC.Index - pointB.Index > 0
+                   && pointC.Index - pointB.Index - 1 > 0
                    && compressSource.HighPrices
                        .Skip(pointB.Index + 1)
                        .Take(pointC.Index - pointB.Index - 1)
@@ -254,7 +254,7 @@ namespace TSLabScripts
                 
                 // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1 
-                   && pointB.Index - realPointA.Index > 0
+                   && pointB.Index - realPointA.Index - 1 > 0
                    && compressSource.LowPrices
                        .Skip(realPointA.Index + 1)
                        .Take(pointB.Index - realPointA.Index - 1)
@@ -275,7 +275,7 @@ namespace TSLabScripts
 
                 // Проверяем приближение LowPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
-                   && pointC.Index - pointB.Index > 0
+                   && pointC.Index - pointB.Index - 1 > 0
                    && compressSource.LowPrices
                        .Skip(pointB.Index + 1)
                        .Take(pointC.Index - pointB.Index - 1)
