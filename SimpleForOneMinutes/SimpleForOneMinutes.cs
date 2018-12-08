@@ -311,7 +311,7 @@ namespace TSLabScripts
         {
             var lastMax = double.MinValue;
 
-            for (var i = actualBar; i >= 0 && IsClosedBar(source.Bars[i]); i--)
+            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
                 lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
             }
@@ -323,7 +323,7 @@ namespace TSLabScripts
         {
             var lastMin = double.MaxValue;
 
-            for (var i = actualBar; i >= 0 && IsClosedBar(source.Bars[i]); i--)
+            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
                 lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
             }
