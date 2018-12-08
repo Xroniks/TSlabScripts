@@ -1,8 +1,8 @@
 ﻿/*
  * Торговая стратегия "Simple". Стратегия расчитана на пробитие уровней экстремума.
  * Для определения точки входа необходимо найти фигру, являющуюся треугольником, с вершинами А, В, С.
- * Точка В должны быть между А и С и быть экстремумом модели. А уровень цены точки А должен быть ближе к уроню цены
- * точки В чем уровень цены точки С.
+ * Точка В должны быть между А и С и быть экстремумом модели. А уровень цены точки С должен быть ближе к уроню цены
+ * точки В чем уровень цены точки А.
  * Вход в позицию должен происходить по уровню экстремума - "ScopeDelta". Вход должен произойти чуть раньше точки
  * экстремума, с целью снижения расходов на проскальзывание.
  * Закрытие позиции должно происходить при одном из трех собыйтий:
@@ -20,6 +20,7 @@
  *
  *  - LengthSegmentAB, ограничивает разницу между уровнями цен точек А и В. Все модели у которых разница будет БОЛЬШЕ установленной, будут пропускаться
  *  - LengthSegmentBC, ограничивает разницу между уровнями цен точек В и С. Все модели у которых разница будет МЕНЬШЕ установленной, будут пропускаться
+ *  - DistanceFromCrossing, ограничивает насколько близко может приближаться цена на отрезках АВ и ВС к уровню цены точки В. Значение -1, отключает ограничение
  *
  *  - DeltaModelSpan, ограничивает время ожидания ВХОДА в позицию. При значении "0" ограничение не работает. Ограничение задается в минутах.
  *  - DeltaPositionSpan, ограничивает время ожидания ВЫХОДА из позиции. При значении "0" ограничение не работает. Ограничение задается в минутах.
@@ -38,14 +39,15 @@ namespace TSLabScripts
 {
     public class SimpleForOneMinutes : IExternalScript
     {
-        public static OptimProperty Value = new OptimProperty(1, double.MinValue, double.MaxValue, 1);
-        public static OptimProperty Slippage = new OptimProperty(30, double.MinValue, double.MaxValue, 0.01);
-        public static OptimProperty ScopeDelta = new OptimProperty(50, double.MinValue, double.MaxValue, 0.01);
-        public static OptimProperty ScopeProfit = new OptimProperty(100, double.MinValue, double.MaxValue, 0.01);
-        public static OptimProperty ScopeStop = new OptimProperty(300, double.MinValue, double.MaxValue, 0.01);
+        public static OptimProperty Value = new OptimProperty(1, 0, double.MaxValue, 1);
+        public static OptimProperty Slippage = new OptimProperty(30, 0, double.MaxValue, 0.01);
+        public static OptimProperty ScopeDelta = new OptimProperty(50, 0, double.MaxValue, 0.01);
+        public static OptimProperty ScopeProfit = new OptimProperty(100, 0, double.MaxValue, 0.01);
+        public static OptimProperty ScopeStop = new OptimProperty(300, 0, double.MaxValue, 0.01);
         
-        public static OptimProperty LengthSegmentAB = new OptimProperty(1000, double.MinValue, double.MaxValue, 0.01);
-        public static OptimProperty LengthSegmentBC = new OptimProperty(390, double.MinValue, double.MaxValue, 0.01);
+        public static OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, double.MaxValue, 0.01);
+        public static OptimProperty LengthSegmentBC = new OptimProperty(390, 0, double.MaxValue, 0.01);
+        public static OptimProperty DistanceFromCrossing = new OptimProperty(0, -1, double.MaxValue, 0.01);
         
         public static OptimProperty DeltaModelSpan = new OptimProperty(120, double.MinValue, double.MaxValue, 1);
         public static OptimProperty DeltaPositionSpan = new OptimProperty(120, double.MinValue, double.MaxValue, 1);
@@ -151,11 +153,11 @@ namespace TSLabScripts
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = compressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(indexCompressBar - indexPointA + 1).
-                    MaxBy(item => item.Value);
+                var pointB = compressSource.HighPrices
+                    .Select((value, index) => new { Value = value, Index = index })
+                    .Skip(indexPointA)
+                    .Take(indexCompressBar - indexPointA + 1)
+                    .MaxBy(item => item.Value);
 
                 var realPointA = compressSource.LowPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -169,6 +171,13 @@ namespace TSLabScripts
                 // Проверм размер фигуры A-B
                 var ab = pointB.Value - realPointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+                
+                // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
+                if(DistanceFromCrossing != -1 
+                   && compressSource.HighPrices
+                       .Skip(realPointA.Index + 2)
+                       .Take(pointB.Index - realPointA.Index)
+                       .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
                 var pointC = compressSource.LowPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -182,8 +191,15 @@ namespace TSLabScripts
                 // Проверям размер модели B-C
                 if (pointB.Value - pointC.Value <= LengthSegmentBC ||
                     pointC.Value - realPointA.Value < 0) continue;
+                
+                // Проверяем приближение HighPrices на отрезке АС к уровню точки В
+                if(DistanceFromCrossing != -1 
+                   && compressSource.HighPrices
+                       .Skip(pointB.Index + 2)
+                       .Take(pointC.Index - pointB.Index)
+                       .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
-                // Проверка на пересечение
+                // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
                     var validateMax = compressSource.HighPrices.
@@ -233,6 +249,13 @@ namespace TSLabScripts
                 // Проверм размер фигуры A-B
                 var ab = realPointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
+                
+                // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
+                if(DistanceFromCrossing != -1 
+                   && compressSource.LowPrices
+                       .Skip(realPointA.Index + 2)
+                       .Take(pointB.Index - realPointA.Index)
+                       .Min() >= pointB.Value + DistanceFromCrossing) continue;
 
                 var pointC = compressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -247,7 +270,14 @@ namespace TSLabScripts
                 if (pointC.Value - pointB.Value <= LengthSegmentBC ||
                     realPointA.Value - pointC.Value < 0) continue;
 
-                // Проверка на пересечение
+                // Проверяем приближение LowPrices на отрезке АС к уровню точки В
+                if(DistanceFromCrossing != -1 
+                   && compressSource.LowPrices
+                       .Skip(pointB.Index + 2)
+                       .Take(pointC.Index - pointB.Index)
+                       .Min() >= pointB.Value + DistanceFromCrossing) continue;
+
+                // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
                     var validateMin = compressSource.LowPrices.
@@ -354,7 +384,7 @@ namespace TSLabScripts
         private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
         {
             return compressSource.Bars
-                .Select((bar, index) => new BarIndexModel { Index = index, Bar = bar })
+                .Select((bar, index) => new { Index = index, Bar = bar })
                 .Last(item =>
                     item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
                     item.Bar.Date.Day == dateActualBar.Day &&
@@ -373,12 +403,6 @@ namespace TSLabScripts
 
             return indexCompressBar;
         }
-    }
-
-    public class BarIndexModel
-    {
-        public int Index { get; set; }
-        public Bar Bar { get; set; }
     }
 
     public struct TradingModel
