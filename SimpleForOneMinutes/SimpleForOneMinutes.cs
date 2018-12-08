@@ -173,10 +173,11 @@ namespace TSLabScripts
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
                 
                 // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
-                if(DistanceFromCrossing != -1 
+                if(DistanceFromCrossing != -1
+                   && pointB.Index - realPointA.Index > 0
                    && compressSource.HighPrices
-                       .Skip(realPointA.Index + 2)
-                       .Take(pointB.Index - realPointA.Index)
+                       .Skip(realPointA.Index + 1)
+                       .Take(pointB.Index - realPointA.Index - 1)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
                 var pointC = compressSource.LowPrices.
@@ -194,9 +195,10 @@ namespace TSLabScripts
                 
                 // Проверяем приближение HighPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
+                   && pointC.Index - pointB.Index > 0
                    && compressSource.HighPrices
-                       .Skip(pointB.Index + 2)
-                       .Take(pointC.Index - pointB.Index)
+                       .Skip(pointB.Index + 1)
+                       .Take(pointC.Index - pointB.Index - 1)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
                 // Проверяем, не отработала ли уже модель
@@ -252,10 +254,11 @@ namespace TSLabScripts
                 
                 // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1 
+                   && pointB.Index - realPointA.Index > 0
                    && compressSource.LowPrices
-                       .Skip(realPointA.Index + 2)
-                       .Take(pointB.Index - realPointA.Index)
-                       .Min() >= pointB.Value + DistanceFromCrossing) continue;
+                       .Skip(realPointA.Index + 1)
+                       .Take(pointB.Index - realPointA.Index - 1)
+                       .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
                 var pointC = compressSource.HighPrices.
                     Select((value, index) => new { Value = value, Index = index }).
@@ -272,10 +275,11 @@ namespace TSLabScripts
 
                 // Проверяем приближение LowPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
+                   && pointC.Index - pointB.Index > 0
                    && compressSource.LowPrices
-                       .Skip(pointB.Index + 2)
-                       .Take(pointC.Index - pointB.Index)
-                       .Min() >= pointB.Value + DistanceFromCrossing) continue;
+                       .Skip(pointB.Index + 1)
+                       .Take(pointC.Index - pointB.Index - 1)
+                       .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
