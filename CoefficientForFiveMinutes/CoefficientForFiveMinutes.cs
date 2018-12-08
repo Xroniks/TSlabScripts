@@ -370,7 +370,7 @@ namespace TSLabScripts
 
         private static bool IsClosedBar(Bar bar)
         {
-            return (bar.Date.TimeOfDay.TotalSeconds + 5.0) % 300.0 == 0.0;
+            return ((int)bar.Date.TimeOfDay.TotalSeconds + 5) % 300 == 0;
         }
 
         private TradingModel GetNewBuyTradingModel(double value, double bc)
