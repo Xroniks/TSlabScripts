@@ -32,9 +32,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MoreLinq, Version=2.0.20029.0, Culture=neutral, PublicKeyToken=384d532d7e88985d">
-      <HintPath>..\dll\MoreLinq.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -55,6 +52,16 @@
   <ItemGroup>
     <Compile Include="SimpleForFiveMinutesAndParabolicSar.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimpleForFiveMinutes\SimpleForFiveMinutes.csproj">
+      <Project>{351fc66a-961d-4f4a-8807-24db7db2b454}</Project>
+      <Name>SimpleForFiveMinutes</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Simple\Simple.csproj">
+      <Project>{f59d11a2-c83b-4bff-b015-61c264d77443}</Project>
+      <Name>Simple</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

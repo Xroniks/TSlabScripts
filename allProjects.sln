@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoefficientForFiveMinutes",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleForFiveMinutesAndParabolicSar", "SimpleForFiveMinutesAndParabolicSar\SimpleForFiveMinutesAndParabolicSar.csproj", "{3E855736-A716-434E-9581-A8A019938FAE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simple", "Simple\Simple.csproj", "{F59D11A2-C83B-4BFF-B015-61C264D77443}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{3E855736-A716-434E-9581-A8A019938FAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E855736-A716-434E-9581-A8A019938FAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3E855736-A716-434E-9581-A8A019938FAE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
