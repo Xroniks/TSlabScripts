@@ -54,10 +54,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SimpleForFiveMinutes\SimpleForFiveMinutes.csproj">
-      <Project>{351fc66a-961d-4f4a-8807-24db7db2b454}</Project>
-      <Name>SimpleForFiveMinutes</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Simple\Simple.csproj">
       <Project>{f59d11a2-c83b-4bff-b015-61c264d77443}</Project>
       <Name>Simple</Name>

@@ -50,12 +50,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BarIndexModel.cs" />
-    <Compile Include="CommonHelper.cs" />
     <Compile Include="Properties\PointModel.cs" />
     <Compile Include="SimpleCommon.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TradingModel.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

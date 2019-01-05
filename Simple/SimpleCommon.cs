@@ -27,16 +27,16 @@
 */
 
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
 using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
-namespace TSLabScripts
+namespace Simple
 {
-    public abstract class SimpleCommon : IExternalScript
+    public abstract class SimpleCommon
     {
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -61,7 +61,7 @@ namespace TSLabScripts
         protected abstract TimeSpan TimeBeginBar { get; }
         protected abstract TimeSpan TimeOneBar { get; } 
         
-        public virtual void Execute(IContext ctx, ISecurity source)
+        public void BaseExecute(IContext ctx, ISecurity source)
         {
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
@@ -458,5 +458,79 @@ namespace TSLabScripts
                 ProfitPrice = value - ScopeProfit
             };
         }
+    }
+    
+    public static class CommonHelper
+    {
+        public static TSource MinBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            comparer = comparer ?? Comparer<TKey>.Default;
+
+            using (var sourceIterator = source.GetEnumerator())
+            {
+                if (!sourceIterator.MoveNext())
+                {
+                    throw new InvalidOperationException("Sequence contains no elements");
+                }
+                var min = sourceIterator.Current;
+                var minKey = selector(min);
+                while (sourceIterator.MoveNext())
+                {
+                    var candidate = sourceIterator.Current;
+                    var candidateProjected = selector(candidate);
+                    if (comparer.Compare(candidateProjected, minKey) < 0)
+                    {
+                        min = candidate;
+                        minKey = candidateProjected;
+                    }
+                }
+                return min;
+            }
+        }
+        
+        public static TSource MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
+            Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            comparer = comparer ?? Comparer<TKey>.Default;
+
+            using (var sourceIterator = source.GetEnumerator())
+            {
+                if (!sourceIterator.MoveNext())
+                {
+                    throw new InvalidOperationException("Sequence contains no elements");
+                }
+                var max = sourceIterator.Current;
+                var maxKey = selector(max);
+                while (sourceIterator.MoveNext())
+                {
+                    var candidate = sourceIterator.Current;
+                    var candidateProjected = selector(candidate);
+                    if (comparer.Compare(candidateProjected, maxKey) > 0)
+                    {
+                        max = candidate;
+                        maxKey = candidateProjected;
+                    }
+                }
+                return max;
+            }
+        }
+    }
+    
+    public class TradingModel
+    {
+        public double Value { get; set; }
+        
+        public double EnterPrice { get; set; }
+
+        public double StopPrice { get; set; }
+
+        public double ProfitPrice { get; set; }
+
+        public string GetNamePosition => $"{Value}_{EnterPrice}_{StopPrice}_{ProfitPrice}";
     }
 }

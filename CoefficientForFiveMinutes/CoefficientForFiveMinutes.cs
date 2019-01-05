@@ -1,13 +1,25 @@
 ﻿using System;
+using Simple;
+using TSLab.Script;
+using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class CoefficientForFiveMinutes : SimpleForFiveMinutes
+    public class CoefficientForFiveMinutes : SimpleCommon, IExternalScript
     {
         public OptimProperty MultyplayDelta = new OptimProperty(1.03, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
+        
+        protected override int DataInterval => 5;
+        protected override TimeSpan TimeBeginBar => new TimeSpan(10, 04, 55);
+        protected override TimeSpan TimeOneBar => new TimeSpan(0, 5, 0);
+        
+        public void Execute(IContext ctx, ISecurity source)
+        {
+            BaseExecute(ctx, source);
+        }
 
         protected override TradingModel GetNewBuyTradingModel(double value, double bc)
         {

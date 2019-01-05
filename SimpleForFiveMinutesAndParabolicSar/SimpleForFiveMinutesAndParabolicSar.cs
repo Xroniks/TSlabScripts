@@ -1,16 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
+using Simple;
 using TSLab.Script;
 using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
 namespace TSLabScripts
 {
-    public class SimpleForFiveMinutesAndParabolicSar : SimpleForFiveMinutes
+    public class SimpleForFiveMinutesAndParabolicSar : SimpleCommon, IExternalScript
     {
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStep = new OptimProperty(0.02, 0.01, 1, 0.01);
+        
+        protected override int DataInterval => 5;
+        protected override TimeSpan TimeBeginBar => new TimeSpan(10, 04, 55);
+        protected override TimeSpan TimeOneBar => new TimeSpan(0, 5, 0);
+        
+        public void Execute(IContext ctx, ISecurity source)
+        {
+            BaseExecute(ctx, source);
+        }
 
         protected override IList<double> AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
         {
