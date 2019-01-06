@@ -34,9 +34,9 @@ using TSLab.Script;
 using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
-namespace TSLabScripts
+namespace Simple
 {
-    public abstract class SimpleCommon
+    public class SimpleCommon
     {
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -46,23 +46,31 @@ namespace TSLabScripts
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
-        public OptimProperty DistanceFromCrossing = new OptimProperty(0, -1, 10000, 0.01);
+        public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
         
-        public OptimProperty DeltaModelSpan = new OptimProperty(120, 0, 1140, 1);
-        public OptimProperty DeltaPositionSpan = new OptimProperty(120, 0, 1140, 1);
+        public OptimProperty DeltaModelSpan = new OptimProperty(0, 0, 1140, 1);
+        public OptimProperty DeltaPositionSpan = new OptimProperty(0, 0, 1140, 1);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
-        public TimeSpan DeltaModelTimeSpan => new TimeSpan(0, DeltaModelSpan, 0);
-        public TimeSpan DeltaPositionTimeSpan => new TimeSpan(0, DeltaPositionSpan, 0);
+        public TimeSpan DeltaModelTimeSpan;
+        public TimeSpan DeltaPositionTimeSpan;
 
-        protected abstract int DataInterval { get; }
-        protected abstract TimeSpan TimeBeginBar { get; }
-        protected abstract TimeSpan TimeOneBar { get; } 
+        public int DataInterval = 5;
+        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
+        public TimeSpan TimeOneBar = new TimeSpan(0, 5, 0);
+
+        public void Init()
+        {
+            DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
+            DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
+        }
         
         public void BaseExecute(IContext ctx, ISecurity source)
         {
+            Init();
+            
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
 
@@ -145,7 +153,7 @@ namespace TSLabScripts
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
                 foreach (var model in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, $"buy_{model.GetNamePosition}");
+                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, "buy_" + model.GetNamePosition);
                 }
                 ctx.StoreObject("BuyModel", buyList);
             }
@@ -156,7 +164,7 @@ namespace TSLabScripts
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
                 foreach (var model in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, $"sell_{model.GetNamePosition}");
+                    source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
                 }
                 ctx.StoreObject("SellList", sellList);
             }
@@ -168,17 +176,17 @@ namespace TSLabScripts
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = compressSource.HighPrices
-                    .Select((value, index) => new { Value = value, Index = index })
+                var pointB = MaxByValue(compressSource.HighPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
                     .Skip(indexPointA)
                     .Take(indexCompressBar - indexPointA + 1)
-                    .MaxBy(item => item.Value);
+                    .ToList());
 
-                var realPointA = compressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(pointB.Index - indexPointA + 1).
-                    MinBy(item => item.Value);
+                var realPointA = MinByValue(compressSource.LowPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                    .Skip(indexPointA)
+                    .Take(pointB.Index - indexPointA + 1)
+                    .ToList());
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -195,11 +203,11 @@ namespace TSLabScripts
                        .Take(pointB.Index - realPointA.Index - 1)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
-                var pointC = compressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(pointB.Index).
-                    Take(indexCompressBar - pointB.Index + 1).
-                    MinBy(item => item.Value);
+                var pointC = MinByValue(compressSource.LowPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                    .Skip(pointB.Index)
+                    .Take(indexCompressBar - pointB.Index + 1)
+                    .ToList());
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -220,10 +228,10 @@ namespace TSLabScripts
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
-                    var validateMax = compressSource.HighPrices.
-                        Skip(pointC.Index + 1).
-                        Take(indexCompressBar - pointC.Index).
-                        Max();
+                    var validateMax = compressSource.HighPrices
+                        .Skip(pointC.Index + 1)
+                        .Take(indexCompressBar - pointC.Index)
+                        .Max();
                     if (model.EnterPrice <= validateMax) continue;
                 }
 
@@ -245,17 +253,17 @@ namespace TSLabScripts
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = compressSource.LowPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(indexCompressBar - indexPointA + 1).
-                    MinBy(item => item.Value);
+                var pointB = MinByValue(compressSource.LowPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                    .Skip(indexPointA)
+                    .Take(indexCompressBar - indexPointA + 1)
+                    .ToList());
 
-                var realPointA = compressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(indexPointA).
-                    Take(pointB.Index - indexPointA + 1).
-                    MaxBy(item => item.Value);
+                var realPointA = MaxByValue(compressSource.HighPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                    .Skip(indexPointA)
+                    .Take(pointB.Index - indexPointA + 1)
+                    .ToList());
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -272,11 +280,11 @@ namespace TSLabScripts
                        .Take(pointB.Index - realPointA.Index - 1)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
-                var pointC = compressSource.HighPrices.
-                    Select((value, index) => new { Value = value, Index = index }).
-                    Skip(pointB.Index).
-                    Take(indexCompressBar - pointB.Index + 1).
-                    MaxBy(item => item.Value);
+                var pointC = MaxByValue(compressSource.HighPrices
+                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                    .Skip(pointB.Index)
+                    .Take(indexCompressBar - pointB.Index + 1)
+                    .ToList());
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -297,10 +305,10 @@ namespace TSLabScripts
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
-                    var validateMin = compressSource.LowPrices.
-                        Skip(pointC.Index + 1).
-                        Take(indexCompressBar - pointC.Index).
-                        Min();
+                    var validateMin = compressSource.LowPrices
+                        .Skip(pointC.Index + 1)
+                        .Take(indexCompressBar - pointC.Index)
+                        .Min();
                     if (model.EnterPrice >= validateMin) continue;
                 }
 
@@ -458,66 +466,17 @@ namespace TSLabScripts
                 ProfitPrice = value - ScopeProfit
             };
         }
-    }
-    
-    public static class CommonHelper
-    {
-        public static TSource MinBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        
+        public static PointModel MinByValue(IList<PointModel> source)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            comparer = comparer ?? Comparer<TKey>.Default;
-
-            using (var sourceIterator = source.GetEnumerator())
-            {
-                if (!sourceIterator.MoveNext())
-                {
-                    throw new InvalidOperationException("Sequence contains no elements");
-                }
-                var min = sourceIterator.Current;
-                var minKey = selector(min);
-                while (sourceIterator.MoveNext())
-                {
-                    var candidate = sourceIterator.Current;
-                    var candidateProjected = selector(candidate);
-                    if (comparer.Compare(candidateProjected, minKey) < 0)
-                    {
-                        min = candidate;
-                        minKey = candidateProjected;
-                    }
-                }
-                return min;
-            }
+            var minValue = source.Select(p => p.Value).Min();
+            return source.FirstOrDefault(p => p.Value.Equals(minValue));
         }
         
-        public static TSource MaxBy<TSource, TKey>(this IEnumerable<TSource> source,
-            Func<TSource, TKey> selector, IComparer<TKey> comparer = null)
+        public static PointModel MaxByValue(IList<PointModel> source)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            comparer = comparer ?? Comparer<TKey>.Default;
-
-            using (var sourceIterator = source.GetEnumerator())
-            {
-                if (!sourceIterator.MoveNext())
-                {
-                    throw new InvalidOperationException("Sequence contains no elements");
-                }
-                var max = sourceIterator.Current;
-                var maxKey = selector(max);
-                while (sourceIterator.MoveNext())
-                {
-                    var candidate = sourceIterator.Current;
-                    var candidateProjected = selector(candidate);
-                    if (comparer.Compare(candidateProjected, maxKey) > 0)
-                    {
-                        max = candidate;
-                        maxKey = candidateProjected;
-                    }
-                }
-                return max;
-            }
+            var minValue = source.Select(p => p.Value).Max();
+            return source.FirstOrDefault(p => p.Value.Equals(minValue));
         }
     }
     
@@ -531,6 +490,16 @@ namespace TSLabScripts
 
         public double ProfitPrice { get; set; }
 
-        public string GetNamePosition => $"{Value}_{EnterPrice}_{StopPrice}_{ProfitPrice}";
+        public string GetNamePosition
+        {
+            get { return Value + "_" + EnterPrice + "_" + StopPrice + "_" + ProfitPrice; }
+        }
+    }
+    
+    public class PointModel
+    {
+        public double Value { get; set; }
+        
+        public int Index { get; set; }
     }
 }
