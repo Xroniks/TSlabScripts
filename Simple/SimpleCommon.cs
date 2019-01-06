@@ -34,7 +34,7 @@ using TSLab.Script;
 using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
-namespace Simple
+namespace TSLabScripts
 {
     public abstract class SimpleCommon
     {
