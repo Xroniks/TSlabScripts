@@ -82,7 +82,7 @@ namespace Simple
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
-            var indicator = AddIndicatorOnMainPain(ctx, source, pain);
+            var indicators = AddIndicatorOnMainPain(ctx, source, pain);
 
             // Инцализировать индикатор моделей пустыми значениями
             var buySignal = Enumerable.Repeat((double)0, source.Bars.Count).ToList();
@@ -90,7 +90,7 @@ namespace Simple
 
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicator);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -102,10 +102,10 @@ namespace Simple
                 PaneSides.RIGHT);
         }
 
-        protected virtual IList<double> AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
+        protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
         {
             // Добавлять индикаторы не требуется
-            return null;
+            return new Indicators();
         }
 
         private void Trading(
@@ -115,7 +115,7 @@ namespace Simple
             int actualBar,
             List<double> buySignal, 
             List<double> sellSignal, 
-            IList<double> indicator)
+            Indicators indicators)
         {
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
@@ -132,7 +132,7 @@ namespace Simple
             // Посик активных позиций
             if (source.Positions.ActivePositionCount > 0)
             {
-                SearchActivePosition(source, actualBar, indicator);
+                SearchActivePosition(source, actualBar, indicators);
             }
 
             if (IsClosedBar(source.Bars[actualBar]))
@@ -153,7 +153,7 @@ namespace Simple
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
                 foreach (var model in buyList)
                 {
-                    source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, "buy_" + model.GetNamePosition);
+                    CreateBuyOrder(source, actualBar, model, indicators);
                 }
                 ctx.StoreObject("BuyModel", buyList);
             }
@@ -164,10 +164,20 @@ namespace Simple
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
                 foreach (var model in sellList)
                 {
-                    source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
+                    CreateSellOrder(source, actualBar, model, indicators);
                 }
                 ctx.StoreObject("SellList", sellList);
             }
+        }
+
+        public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        {
+            source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, "buy_" + model.GetNamePosition);
+        }
+
+        public virtual void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        {
+            source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
         }
 
         private void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> buySignal)
@@ -348,7 +358,7 @@ namespace Simple
             return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
-        private void SearchActivePosition(ISecurity source, int actualBar, IList<double> indicator)
+        private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
         {
             var positionList = source.Positions.GetActiveForBar(actualBar);
 
@@ -366,11 +376,11 @@ namespace Simple
                 {
                     case "buy":
                         SetBuyProfit(actualBar, position, arr);
-                        SetBuyStop(actualBar, position, arr, indicator);
+                        SetBuyStop(actualBar, position, arr, indicators);
                         break;
                     case "sell":
                         SetSellProfit(actualBar, position, arr);
-                        SetSellStop(actualBar, position, arr, indicator);
+                        SetSellStop(actualBar, position, arr, indicators);
                         break;
                 }
             }
@@ -381,7 +391,7 @@ namespace Simple
             position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
         
-        protected virtual void SetBuyStop(int actualBar, IPosition position, string[] arr, IList<double> indicator)
+        protected virtual void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
         }
@@ -391,7 +401,7 @@ namespace Simple
             position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
 
-        protected virtual void SetSellStop(int actualBar, IPosition position, string[] arr, IList<double> indicator)
+        protected virtual void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
         }
@@ -501,5 +511,12 @@ namespace Simple
         public double Value { get; set; }
         
         public int Index { get; set; }
+    }
+    
+    public class Indicators
+    {
+        public IList<double> Parabolic { get; set; }
+        
+        public IList<double> EMA { get; set; }
     }
 }

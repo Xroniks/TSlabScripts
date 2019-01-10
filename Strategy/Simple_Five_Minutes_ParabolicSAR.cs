@@ -18,7 +18,7 @@ namespace TSLabScripts
             BaseExecute(ctx, source);
         }
 
-        protected override IList<double> AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
+        protected override Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
         {
             var parabolic = ctx.GetData("Parabolic", new[] {""}, () => new ParabolicSAR
             {
@@ -26,22 +26,22 @@ namespace TSLabScripts
                 AccelerationStart = AccelerationStart,
                 AccelerationStep = AccelerationStep
             }.Execute(source));
-            var nameParabolic = "Parabolic (" + AccelerationStart.Value + "," + AccelerationStep.Value + "," +
-                                AccelerationMax.Value + ")";
-            pain.AddList(nameParabolic, parabolic, ListStyles.LINE, new Color(255, 0, 0), LineStyles.SOLID,
-                PaneSides.RIGHT);
+            var nameParabolic = "Parabolic (" + AccelerationStart.Value + "," + AccelerationStep.Value + "," + AccelerationMax.Value + ")";
+            pain.AddList(nameParabolic, parabolic, ListStyles.LINE, new Color(255, 0, 0), LineStyles.SOLID, PaneSides.RIGHT);
 
-            return parabolic;
+            return new Indicators { Parabolic = parabolic };
         }
 
-        protected override void SetSellStop(int actualBar, IPosition position, string[] arr, IList<double> indicator)
+        protected override void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtStop(actualBar + 1, Convert.ToDouble(indicator[actualBar]), Slippage, "closeStop");
+            var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
+            position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
 
-        protected override void SetBuyStop(int actualBar, IPosition position, string[] arr, IList<double> indicator)
+        protected override void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtStop(actualBar + 1, Convert.ToDouble(indicator[actualBar]), Slippage, "closeStop");
+            var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
+            position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
     }
 }
