@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CoefficientForFiveMinutesAndParabolicSar")]
+[assembly: AssemblyTitle("Coefficient_Five_Minutes_ParabolicSAR_EMA")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("CoefficientForFiveMinutesAndParabolicSar")]
+[assembly: AssemblyProduct("Coefficient_Five_Minutes_ParabolicSAR_EMA")]
 [assembly: AssemblyCopyright("Copyright ©  2019")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("9118A90B-E386-4A3E-A5F6-984C336439C6")]
+[assembly: Guid("34655BB9-5725-4BA4-9C23-5B331E03C562")]
 
 // Version information for an assembly consists of the following four values:
 //

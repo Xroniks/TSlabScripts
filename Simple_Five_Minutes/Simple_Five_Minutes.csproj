@@ -4,14 +4,13 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3E855736-A716-434E-9581-A8A019938FAE}</ProjectGuid>
+    <ProjectGuid>{351FC66A-961D-4F4A-8807-24DB7DB2B454}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>SimpleForFiveMinutesAndParabolicSar</RootNamespace>
-    <AssemblyName>SimpleForFiveMinutesAndParabolicSar</AssemblyName>
+    <RootNamespace>SimpleForFiveMinutes</RootNamespace>
+    <AssemblyName>Simple_Five_Minutes</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <LangVersion>7</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -46,18 +45,14 @@
     <Reference Include="TSLab.Script.Handlers, Version=1.2.34.0, Culture=neutral, PublicKeyToken=null">
       <HintPath>..\dll\TSLab.Script.Handlers.dll</HintPath>
     </Reference>
-    <Reference Include="TSlabScripts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\dll\TSlabScripts.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="SimpleForFiveMinutesAndParabolicSar.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Simple\Simple.csproj">
+    <ProjectReference Include="..\Strategy\Strategy.csproj">
       <Project>{f59d11a2-c83b-4bff-b015-61c264d77443}</Project>
-      <Name>Simple</Name>
+      <Name>Strategy</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

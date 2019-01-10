@@ -3,17 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleForFiveMinutes", "SimpleForFiveMinutes\SimpleForFiveMinutes.csproj", "{351FC66A-961D-4F4A-8807-24DB7DB2B454}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleForOneMinutes", "SimpleForOneMinutes\SimpleForOneMinutes.csproj", "{ED527F48-B1DE-4CC9-B6AD-15E8EF0C6153}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoefficientForFiveMinutes", "CoefficientForFiveMinutes\CoefficientForFiveMinutes.csproj", "{C08D5D8F-10D4-4571-8E60-F24115658157}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleForFiveMinutesAndParabolicSar", "SimpleForFiveMinutesAndParabolicSar\SimpleForFiveMinutesAndParabolicSar.csproj", "{3E855736-A716-434E-9581-A8A019938FAE}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Simple", "Simple\Simple.csproj", "{F59D11A2-C83B-4BFF-B015-61C264D77443}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoefficientForFiveMinutesAndParabolicSar", "CoefficientForFiveMinutesAndParabolicSar\CoefficientForFiveMinutesAndParabolicSar.csproj", "{9118A90B-E386-4A3E-A5F6-984C336439C6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Strategy", "Strategy\Strategy.csproj", "{F59D11A2-C83B-4BFF-B015-61C264D77443}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,30 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{351FC66A-961D-4F4A-8807-24DB7DB2B454}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{351FC66A-961D-4F4A-8807-24DB7DB2B454}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{351FC66A-961D-4F4A-8807-24DB7DB2B454}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{351FC66A-961D-4F4A-8807-24DB7DB2B454}.Release|Any CPU.Build.0 = Release|Any CPU
-		{ED527F48-B1DE-4CC9-B6AD-15E8EF0C6153}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{ED527F48-B1DE-4CC9-B6AD-15E8EF0C6153}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{ED527F48-B1DE-4CC9-B6AD-15E8EF0C6153}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{ED527F48-B1DE-4CC9-B6AD-15E8EF0C6153}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C08D5D8F-10D4-4571-8E60-F24115658157}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C08D5D8F-10D4-4571-8E60-F24115658157}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C08D5D8F-10D4-4571-8E60-F24115658157}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C08D5D8F-10D4-4571-8E60-F24115658157}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3E855736-A716-434E-9581-A8A019938FAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3E855736-A716-434E-9581-A8A019938FAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3E855736-A716-434E-9581-A8A019938FAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3E855736-A716-434E-9581-A8A019938FAE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F59D11A2-C83B-4BFF-B015-61C264D77443}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9118A90B-E386-4A3E-A5F6-984C336439C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9118A90B-E386-4A3E-A5F6-984C336439C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9118A90B-E386-4A3E-A5F6-984C336439C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9118A90B-E386-4A3E-A5F6-984C336439C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
