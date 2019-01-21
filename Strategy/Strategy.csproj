@@ -36,17 +36,14 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="TSLab.DataSource, Version=1.2.34.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\dll\TSLab.DataSource.dll</HintPath>
+    <Reference Include="TSLab.DataSource, Version=2.0.32.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dllv2\TSLab.DataSource.dll</HintPath>
     </Reference>
-    <Reference Include="TSLab.Script, Version=1.2.34.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\dll\TSLab.Script.dll</HintPath>
+    <Reference Include="TSLab.Script, Version=2.0.32.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dllv2\TSLab.Script.dll</HintPath>
     </Reference>
-    <Reference Include="TSLab.Script.Handlers, Version=1.2.34.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\dll\TSLab.Script.Handlers.dll</HintPath>
-    </Reference>
-    <Reference Include="TSlabScripts, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
-      <HintPath>..\dll\TSlabScripts.dll</HintPath>
+    <Reference Include="TSLab.Script.Handlers, Version=2.0.32.0, Culture=neutral, PublicKeyToken=null">
+      <HintPath>..\dllv2\TSLab.Script.Handlers.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

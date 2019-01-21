@@ -449,7 +449,7 @@ namespace Simple
             return indexCompressBar;
         }
         
-        private bool IsClosedBar(Bar bar)
+        private bool IsClosedBar(IDataBar bar)
         {
             // можно гарантировать что "TotalSeconds" будет не дробным, так как система работает на интервале 5 секунд.
             return ((int)bar.Date.TimeOfDay.TotalSeconds + 5) % (DataInterval * 60) == 0;
