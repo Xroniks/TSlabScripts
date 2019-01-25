@@ -71,14 +71,16 @@ namespace TSLabScripts
 
         protected override void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-            position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
+            var parabolicStop = Convert.ToDouble(indicators.Parabolic[actualBar]);
+            var modelStop = Convert.ToDouble(arr[3]);
+            position.CloseAtStop(actualBar + 1, Math.Min(parabolicStop, modelStop), Slippage, "closeStop");
         }
 
         protected override void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-            position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
+            var parabolicStop = Convert.ToDouble(indicators.Parabolic[actualBar]);
+            var modelStop = Convert.ToDouble(arr[3]);
+            position.CloseAtStop(actualBar + 1, Math.Max(parabolicStop, modelStop), Slippage, "closeStop");
         }
         
         public override void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
