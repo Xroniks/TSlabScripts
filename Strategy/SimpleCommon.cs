@@ -29,7 +29,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -40,7 +39,10 @@ namespace Simple
 {
     public class SimpleCommon
     {
-        public static List<long> modelTime = new List<long>();
+        public static List<long> searchBuyModelTime = new List<long>();
+        public static List<long> searchPointBTime = new List<long>();
+        public static List<long> searchRealPointATime = new List<long>();
+        public static List<long> searchPointCTime = new List<long>();
         
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -73,6 +75,7 @@ namespace Simple
         
         public void BaseExecute(IContext ctx, ISecurity source)
         {   
+            var eWatch = new Stopwatch();  
             var sWatch = new Stopwatch();  
             var allWatch = new Stopwatch();  
             
@@ -99,7 +102,7 @@ namespace Simple
 
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch, eWatch);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -112,9 +115,13 @@ namespace Simple
             
             allWatch.Stop();
             
+            ctx.Log("---------------------------------------");
             ctx.Log("Время общее: " + allWatch.ElapsedTicks);
-            
-            ctx.Log("modelTime: " + modelTime.Sum());
+            ctx.Log("searchBuyModelTime: " + searchBuyModelTime.Sum());
+            ctx.Log("searchPointBTime: " + searchPointBTime.Sum());
+            ctx.Log("searchRealPointATime: " + searchRealPointATime.Sum());
+            ctx.Log("searchPointCTime: " + searchPointCTime.Sum());
+            ctx.Log("---------------------------------------");
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -129,7 +136,9 @@ namespace Simple
             int actualBar,
             List<double> buySignal,
             List<double> sellSignal,
-            Indicators indicators, Stopwatch sWatch)
+            Indicators indicators, 
+            Stopwatch sWatch, 
+            Stopwatch eWatch)
         {
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
@@ -149,8 +158,6 @@ namespace Simple
                 SearchActivePosition(source, actualBar, indicators);
             }
                         
-            sWatch.Start();
-            
             if (IsClosedBar(source.Bars[actualBar]))
             {
                 var dateActualBar = source.Bars[actualBar].Date;
@@ -159,13 +166,27 @@ namespace Simple
 
                 // Поиск моделей, информация о моделях пишется в "StoreObject"
                 // Модели ищутся только на открытии бара, а валидируются каждые 5 секунд
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
+                
+                sWatch.Start();
+
+                var highPoints = compressSource.Bars
+                    .Skip(indexBeginDayBar)
+                    .Select((bar, index) => new PointModel {Value = bar.High, Index = index + indexBeginDayBar})
+                    .ToList();
+                
+                var lowPoints = compressSource.Bars
+                    .Skip(indexBeginDayBar)
+                    .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
+                    .ToList();
+                
+                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, eWatch, highPoints, lowPoints);
+                
+                sWatch.Stop();
+                searchBuyModelTime.Add(sWatch.ElapsedTicks);
+                sWatch.Reset();
+                
+                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
-            
-            sWatch.Stop();
-            modelTime.Add(sWatch.ElapsedTicks);
-            sWatch.Reset();
             
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
@@ -202,24 +223,35 @@ namespace Simple
             source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
         }
 
-        private void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> buySignal)
+        private void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar,
+            int actualBar, List<double> buySignal, Stopwatch eWatch, List<PointModel> highPoints, List<PointModel> lowPoints)
         {
             var modelBuyList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = MaxByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
-                    .Skip(indexPointA)
+                eWatch.Start();
+                
+                var pointB = MaxByValue(highPoints
+                    .Skip(indexPointA - indexBeginDayBar)
                     .Take(indexCompressBar - indexPointA + 1)
                     .ToList());
+                
+                eWatch.Stop();
+                searchPointBTime.Add(eWatch.ElapsedTicks);
+                eWatch.Reset();
+                
+                eWatch.Start();
 
-                var realPointA = MinByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
-                    .Skip(indexPointA)
+                var realPointA = MinByValue(lowPoints
+                    .Skip(indexPointA - indexBeginDayBar)
                     .Take(pointB.Index - indexPointA + 1)
                     .ToList());
-
+                
+                eWatch.Stop();
+                searchRealPointATime.Add(eWatch.ElapsedTicks);
+                eWatch.Reset();
+                
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
 
@@ -230,17 +262,22 @@ namespace Simple
                 // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1
                    && pointB.Index - realPointA.Index - 1 > 0
-                   && compressSource.Bars
-                       .Skip(realPointA.Index + 1)
+                   && highPoints
+                       .Select(x => x.Value)
+                       .Skip(realPointA.Index + 1 - indexBeginDayBar)
                        .Take(pointB.Index - realPointA.Index - 1)
-                       .Select(x => x.High)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
-
-                var pointC = MinByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
-                    .Skip(pointB.Index)
+                
+                eWatch.Start();
+                
+                var pointC = MinByValue(lowPoints
+                    .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
                     .ToList());
+                
+                eWatch.Stop();
+                searchPointCTime.Add(eWatch.ElapsedTicks);
+                eWatch.Reset();
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -252,20 +289,20 @@ namespace Simple
                 // Проверяем приближение HighPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
-                   && compressSource.Bars
-                       .Skip(pointB.Index + 1)
+                   && highPoints
+                       .Select(x => x.Value)
+                       .Skip(pointB.Index + 1 - indexBeginDayBar)
                        .Take(pointC.Index - pointB.Index - 1)
-                       .Select(x => x.High)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
                 
                 var model = GetNewBuyTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
-                    var validateMax = compressSource.Bars
-                        .Skip(pointC.Index + 1)
+                    var validateMax = highPoints
+                        .Select(x => x.Value)
+                        .Skip(pointC.Index + 1 - indexBeginDayBar)
                         .Take(indexCompressBar - pointC.Index)
-                        .Select(x => x.High)
                         .Max();
                     if (model.EnterPrice <= validateMax) continue;
                 }
@@ -282,21 +319,20 @@ namespace Simple
             ctx.StoreObject("BuyModel", modelBuyList);
         }
 
-        private void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, int actualBar, List<double> sellSignal)
+        private void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, 
+            int actualBar, List<double> sellSignal, List<PointModel> highPoints, List<PointModel> lowPoints)
         {
             List<TradingModel> modelSellList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = MinByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
-                    .Skip(indexPointA)
+                var pointB = MinByValue(lowPoints
+                    .Skip(indexPointA - indexBeginDayBar)
                     .Take(indexCompressBar - indexPointA + 1)
                     .ToList());
 
-                var realPointA = MaxByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
-                    .Skip(indexPointA)
+                var realPointA = MaxByValue(highPoints
+                    .Skip(indexPointA - indexBeginDayBar)
                     .Take(pointB.Index - indexPointA + 1)
                     .ToList());
 
@@ -310,15 +346,14 @@ namespace Simple
                 // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointB.Index - realPointA.Index - 1 > 0
-                   && compressSource.Bars
-                       .Skip(realPointA.Index + 1)
+                   && lowPoints
+                       .Select(x => x.Value)
+                       .Skip(realPointA.Index + 1 - indexBeginDayBar)
                        .Take(pointB.Index - realPointA.Index - 1)
-                       .Select(x => x.Low)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
-                var pointC = MaxByValue(compressSource.Bars
-                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
-                    .Skip(pointB.Index)
+                var pointC = MaxByValue(highPoints
+                    .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
                     .ToList());
 
@@ -332,20 +367,20 @@ namespace Simple
                 // Проверяем приближение LowPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
-                   && compressSource.Bars
-                       .Skip(pointB.Index + 1)
+                   && lowPoints
+                       .Select(x => x.Value)
+                       .Skip(pointB.Index + 1 - indexBeginDayBar)
                        .Take(pointC.Index - pointB.Index - 1)
-                       .Select(x => x.Low)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
                 
                 var model = GetNewSellTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
-                    var validateMin = compressSource.Bars
-                        .Skip(pointC.Index + 1)
+                    var validateMin = lowPoints
+                        .Select(x => x.Value)
+                        .Skip(pointC.Index + 1 - indexBeginDayBar)
                         .Take(indexCompressBar - pointC.Index)
-                        .Select(x => x.Low)
                         .Min();
                     if (model.EnterPrice >= validateMin) continue;
                 }
@@ -456,13 +491,12 @@ namespace Simple
         
         private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
         {
-            return compressSource.Bars
-                .Select((bar, index) => new { Index = index, Bar = bar })
-                .Last(item =>
-                    item.Bar.Date.TimeOfDay == TimeBeginDayBar &&
-                    item.Bar.Date.Day == dateActualBar.Day &&
-                    item.Bar.Date.Month == dateActualBar.Month &&
-                    item.Bar.Date.Year == dateActualBar.Year).Index;
+            return compressSource.Bars.ToList().FindIndex(item =>
+                    item.Date.TimeOfDay == TimeBeginDayBar &&
+                    item.Date.Day == dateActualBar.Day &&
+                    item.Date.Month == dateActualBar.Month &&
+                    item.Date.Year == dateActualBar.Year);
+          
         }
 
         private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
