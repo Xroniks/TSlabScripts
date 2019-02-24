@@ -202,14 +202,14 @@ namespace Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = MaxByValue(compressSource.HighPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var pointB = MaxByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
                     .Skip(indexPointA)
                     .Take(indexCompressBar - indexPointA + 1)
                     .ToList());
 
-                var realPointA = MinByValue(compressSource.LowPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var realPointA = MinByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
                     .Skip(indexPointA)
                     .Take(pointB.Index - indexPointA + 1)
                     .ToList());
@@ -229,8 +229,8 @@ namespace Simple
                        .Take(pointB.Index - realPointA.Index - 1)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
-                var pointC = MinByValue(compressSource.LowPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var pointC = MinByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
                     .Skip(pointB.Index)
                     .Take(indexCompressBar - pointB.Index + 1)
                     .ToList());
@@ -279,14 +279,14 @@ namespace Simple
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                var pointB = MinByValue(compressSource.LowPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var pointB = MinByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.Low, Index = index })
                     .Skip(indexPointA)
                     .Take(indexCompressBar - indexPointA + 1)
                     .ToList());
 
-                var realPointA = MaxByValue(compressSource.HighPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var realPointA = MaxByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
                     .Skip(indexPointA)
                     .Take(pointB.Index - indexPointA + 1)
                     .ToList());
@@ -306,8 +306,8 @@ namespace Simple
                        .Take(pointB.Index - realPointA.Index - 1)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
-                var pointC = MaxByValue(compressSource.HighPrices
-                    .Select((value, index) => new PointModel{ Value = value, Index = index })
+                var pointC = MaxByValue(compressSource.Bars
+                    .Select((bar, index) => new PointModel{ Value = bar.High, Index = index })
                     .Skip(pointB.Index)
                     .Take(indexCompressBar - pointB.Index + 1)
                     .ToList());
