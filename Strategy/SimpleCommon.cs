@@ -40,7 +40,7 @@ namespace Simple
 {
     public class SimpleCommon
     {
-        public static List<long> time = new List<long>();
+        public static List<long> modelTime = new List<long>();
         
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -74,6 +74,9 @@ namespace Simple
         public void BaseExecute(IContext ctx, ISecurity source)
         {   
             var sWatch = new Stopwatch();  
+            var allWatch = new Stopwatch();  
+            
+            allWatch.Start();
             
             Init();
             
@@ -106,9 +109,12 @@ namespace Simple
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
-
-            ctx.Log("Последний: " + time.Last());
-            ctx.Log("В среднем: " + time.Sum() / time.Count);
+            
+            allWatch.Stop();
+            
+            ctx.Log("Время общее: " + allWatch.ElapsedTicks);
+            
+            ctx.Log("modelTime: " + modelTime.Sum());
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -125,8 +131,6 @@ namespace Simple
             List<double> sellSignal,
             Indicators indicators, Stopwatch sWatch)
         {
-            
-            
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
@@ -144,11 +148,11 @@ namespace Simple
             {
                 SearchActivePosition(source, actualBar, indicators);
             }
-
+                        
+            sWatch.Start();
+            
             if (IsClosedBar(source.Bars[actualBar]))
             {
-                sWatch.Start();
-                
                 var dateActualBar = source.Bars[actualBar].Date;
                 var indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
                 var indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
@@ -157,23 +161,25 @@ namespace Simple
                 // Модели ищутся только на открытии бара, а валидируются каждые 5 секунд
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
-                
-                sWatch.Stop();
-                time.Add(sWatch.ElapsedTicks);
-                sWatch.Reset();
             }
-
+            
+            sWatch.Stop();
+            modelTime.Add(sWatch.ElapsedTicks);
+            sWatch.Reset();
+            
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
+                
                 foreach (var model in buyList)
                 {
                     CreateBuyOrder(source, actualBar, model, indicators);
                 }
+                
                 ctx.StoreObject("BuyModel", buyList);
             }
-
+            
             var modelSellList = (List<TradingModel>)ctx.LoadObject("SellModel") ?? new List<TradingModel>();
             if (modelSellList.Any())
             {
@@ -224,9 +230,10 @@ namespace Simple
                 // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1
                    && pointB.Index - realPointA.Index - 1 > 0
-                   && compressSource.HighPrices
+                   && compressSource.Bars
                        .Skip(realPointA.Index + 1)
                        .Take(pointB.Index - realPointA.Index - 1)
+                       .Select(x => x.High)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
 
                 var pointC = MinByValue(compressSource.Bars
@@ -245,18 +252,20 @@ namespace Simple
                 // Проверяем приближение HighPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
-                   && compressSource.HighPrices
+                   && compressSource.Bars
                        .Skip(pointB.Index + 1)
                        .Take(pointC.Index - pointB.Index - 1)
+                       .Select(x => x.High)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
                 
                 var model = GetNewBuyTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
-                    var validateMax = compressSource.HighPrices
+                    var validateMax = compressSource.Bars
                         .Skip(pointC.Index + 1)
                         .Take(indexCompressBar - pointC.Index)
+                        .Select(x => x.High)
                         .Max();
                     if (model.EnterPrice <= validateMax) continue;
                 }
@@ -301,9 +310,10 @@ namespace Simple
                 // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointB.Index - realPointA.Index - 1 > 0
-                   && compressSource.LowPrices
+                   && compressSource.Bars
                        .Skip(realPointA.Index + 1)
                        .Take(pointB.Index - realPointA.Index - 1)
+                       .Select(x => x.Low)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
                 var pointC = MaxByValue(compressSource.Bars
@@ -322,18 +332,20 @@ namespace Simple
                 // Проверяем приближение LowPrices на отрезке АС к уровню точки В
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
-                   && compressSource.LowPrices
+                   && compressSource.Bars
                        .Skip(pointB.Index + 1)
                        .Take(pointC.Index - pointB.Index - 1)
+                       .Select(x => x.Low)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
                 
                 var model = GetNewSellTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
-                    var validateMin = compressSource.LowPrices
+                    var validateMin = compressSource.Bars
                         .Skip(pointC.Index + 1)
                         .Take(indexCompressBar - pointC.Index)
+                        .Select(x => x.Low)
                         .Min();
                     if (model.EnterPrice >= validateMin) continue;
                 }
@@ -356,7 +368,7 @@ namespace Simple
 
             for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
-                lastMax = source.HighPrices[i] > lastMax ? source.HighPrices[i] : lastMax;
+                lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
             }
 
             return modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
@@ -368,7 +380,7 @@ namespace Simple
 
             for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
-                lastMin = source.LowPrices[i] < lastMin ? source.LowPrices[i] : lastMin;
+                lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
             }
 
             return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
@@ -438,7 +450,7 @@ namespace Simple
         private bool GetValidTimeFrame(IContext ctx, ISecurity source)
         {
             if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
-            ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам", new Color(255, 0, 0), true);
+            ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам");
             return false;
         }
         
