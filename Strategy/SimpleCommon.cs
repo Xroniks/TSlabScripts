@@ -28,6 +28,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -38,6 +40,8 @@ namespace Simple
 {
     public class SimpleCommon
     {
+        public static List<long> time = new List<long>();
+        
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 1000, 0.01);
@@ -68,7 +72,9 @@ namespace Simple
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
-        {
+        {   
+            var sWatch = new Stopwatch();  
+            
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -90,7 +96,7 @@ namespace Simple
 
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -100,6 +106,9 @@ namespace Simple
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
+
+            ctx.Log("Последний: " + time.Last());
+            ctx.Log("В среднем: " + time.Sum() / time.Count);
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -108,15 +117,16 @@ namespace Simple
             return new Indicators();
         }
 
-        private void Trading(
-            IContext ctx, 
-            ISecurity source, 
-            ISecurity compressSource, 
+        private void Trading(IContext ctx,
+            ISecurity source,
+            ISecurity compressSource,
             int actualBar,
-            List<double> buySignal, 
-            List<double> sellSignal, 
-            Indicators indicators)
+            List<double> buySignal,
+            List<double> sellSignal,
+            Indicators indicators, Stopwatch sWatch)
         {
+            
+            
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
@@ -137,6 +147,8 @@ namespace Simple
 
             if (IsClosedBar(source.Bars[actualBar]))
             {
+                sWatch.Start();
+                
                 var dateActualBar = source.Bars[actualBar].Date;
                 var indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
                 var indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
@@ -145,6 +157,10 @@ namespace Simple
                 // Модели ищутся только на открытии бара, а валидируются каждые 5 секунд
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal);
+                
+                sWatch.Stop();
+                time.Add(sWatch.ElapsedTicks);
+                sWatch.Reset();
             }
 
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
@@ -477,16 +493,34 @@ namespace Simple
             };
         }
         
-        public static PointModel MinByValue(IList<PointModel> source)
+        public static PointModel MinByValue(IReadOnlyCollection<PointModel> source)
         {
-            var minValue = source.Select(p => p.Value).Min();
-            return source.FirstOrDefault(p => p.Value.Equals(minValue));
+            var min = source.First();
+            
+            foreach (var model in source)
+            {
+                if (model.Value < min.Value)
+                {
+                    min = model;
+                }
+            }
+
+            return min;
         }
         
-        public static PointModel MaxByValue(IList<PointModel> source)
+        public static PointModel MaxByValue(IReadOnlyCollection<PointModel> source)
         {
-            var minValue = source.Select(p => p.Value).Max();
-            return source.FirstOrDefault(p => p.Value.Equals(minValue));
+            var max = source.First();
+            
+            foreach (var model in source)
+            {
+                if (model.Value > max.Value)
+                {
+                    max = model;
+                }
+            }
+
+            return max;
         }
     }
     
