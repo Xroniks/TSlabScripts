@@ -235,7 +235,7 @@ namespace Simple
                 var pointB = MaxByValue(highPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(indexCompressBar - indexPointA + 1)
-                    .ToList());
+                    .ToArray());
                 
                 eWatch.Stop();
                 searchPointBTime.Add(eWatch.ElapsedTicks);
@@ -246,7 +246,7 @@ namespace Simple
                 var realPointA = MinByValue(lowPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(pointB.Index - indexPointA + 1)
-                    .ToList());
+                    .ToArray());
                 
                 eWatch.Stop();
                 searchRealPointATime.Add(eWatch.ElapsedTicks);
@@ -273,7 +273,7 @@ namespace Simple
                 var pointC = MinByValue(lowPoints
                     .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
-                    .ToList());
+                    .ToArray());
                 
                 eWatch.Stop();
                 searchPointCTime.Add(eWatch.ElapsedTicks);
@@ -329,12 +329,12 @@ namespace Simple
                 var pointB = MinByValue(lowPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(indexCompressBar - indexPointA + 1)
-                    .ToList());
+                    .ToArray());
 
                 var realPointA = MaxByValue(highPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(pointB.Index - indexPointA + 1)
-                    .ToList());
+                    .ToArray());
 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -355,7 +355,7 @@ namespace Simple
                 var pointC = MaxByValue(highPoints
                     .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
-                    .ToList());
+                    .ToArray());
 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
@@ -503,6 +503,7 @@ namespace Simple
         {
             var indexCompressBar = indexBeginDayBar;
             var tempTime = dateActualBar - TimeOneBar - FiveSeconds;
+            
             while (compressSource.Bars[indexCompressBar].Date < tempTime)
             {
                 indexCompressBar++;
@@ -539,30 +540,32 @@ namespace Simple
             };
         }
         
-        public static PointModel MinByValue(IReadOnlyCollection<PointModel> source)
+        public static PointModel MinByValue(PointModel[] source)
         {
-            var min = source.First();
+            var min = source[0];
+            var count = source.Length;
             
-            foreach (var model in source)
+            for (var i = 1; i < count; i++)
             {
-                if (model.Value < min.Value)
+                if (source[i].Value < min.Value)
                 {
-                    min = model;
+                    min = source[i];
                 }
             }
 
             return min;
         }
         
-        public static PointModel MaxByValue(IReadOnlyCollection<PointModel> source)
+        public static PointModel MaxByValue(PointModel[] source)
         {
-            var max = source.First();
-            
-            foreach (var model in source)
+            var max = source[0];
+            var count = source.Length;
+
+            for (var i = 1; i < count; i++)
             {
-                if (model.Value > max.Value)
+                if (source[i].Value > max.Value)
                 {
-                    max = model;
+                    max = source[i];
                 }
             }
 
