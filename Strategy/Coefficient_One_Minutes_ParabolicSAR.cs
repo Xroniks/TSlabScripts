@@ -18,9 +18,9 @@ namespace TSLabScripts
         public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStep = new OptimProperty(0.02, 0.01, 1, 0.01);
         
-        public new int DataInterval => 1;
-        public new TimeSpan TimeBeginBar => new TimeSpan(10, 00, 55);
-        public new TimeSpan TimeOneBar => new TimeSpan(0, 1, 0);
+        public new int DataInterval = 1;
+        public new TimeSpan TimeBeginBar = new TimeSpan(10, 00, 55);
+        public new TimeSpan TimeOneBar = new TimeSpan(0, 1, 0);
         
         public void Execute(IContext ctx, ISecurity source)
         {

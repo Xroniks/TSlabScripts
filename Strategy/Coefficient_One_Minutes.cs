@@ -14,9 +14,9 @@ namespace TSLabScripts
         public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
         public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
         
-        public new int DataInterval => 1;
-        public new TimeSpan TimeBeginBar => new TimeSpan(10, 00, 55);
-        public new TimeSpan TimeOneBar => new TimeSpan(0, 1, 0);
+        public new int DataInterval = 1;
+        public new TimeSpan TimeBeginBar = new TimeSpan(10, 00, 55);
+        public new TimeSpan TimeOneBar = new TimeSpan(0, 1, 0);
         
         public void Execute(IContext ctx, ISecurity source)
         {
