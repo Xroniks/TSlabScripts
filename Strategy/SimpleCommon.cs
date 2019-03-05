@@ -42,6 +42,7 @@ namespace Simple
         public static List<long> searchModelTime = new List<long>();
         public static List<long> createOrderTime = new List<long>();
         
+        public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 1000, 0.01);
@@ -61,9 +62,10 @@ namespace Simple
         public TimeSpan DeltaModelTimeSpan;
         public TimeSpan DeltaPositionTimeSpan;
 
-        public int DataInterval = 5;
-        public TimeSpan TimeBeginBar = new TimeSpan(10, 04, 55);
-        public TimeSpan TimeOneBar = new TimeSpan(0, 5, 0);
+        public TimeSpan TimeBeginBarForFiveMinutes = new TimeSpan(10, 04, 55);
+        public TimeSpan TimeBeginBarForOneMinutes = new TimeSpan(10, 0, 55);
+        public TimeSpan TimeOneBarForFiveMinutes = new TimeSpan(0, 5, 0);
+        public TimeSpan TimeOneBarForOneMinutes = new TimeSpan(0, 1, 0);
 
         public void Init()
         {
@@ -135,7 +137,7 @@ namespace Simple
             Indicators indicators, 
             Stopwatch sWatch)
         {
-            if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
+            if (source.Bars[actualBar].Date.TimeOfDay < GetTimeBeginBar()) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
             if (source.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
@@ -501,7 +503,7 @@ namespace Simple
         private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
             var indexCompressBar = indexBeginDayBar;
-            var tempTime = dateActualBar - TimeOneBar - FiveSeconds;
+            var tempTime = dateActualBar - GetTimeOneBar() - FiveSeconds;
             
             while (compressSource.Bars[indexCompressBar].Date < tempTime)
             {
@@ -538,6 +540,16 @@ namespace Simple
                 StopPrice = value + ScopeStop,
                 ProfitPrice = value - ScopeProfit
             };
+        }
+        
+        protected TimeSpan GetTimeBeginBar()
+        {
+            return DataInterval == 5 ? TimeBeginBarForFiveMinutes : TimeBeginBarForOneMinutes;
+        }
+        
+        protected TimeSpan GetTimeOneBar()
+        {
+            return DataInterval == 5 ? TimeOneBarForFiveMinutes : TimeOneBarForOneMinutes;
         }
         
         public static PointModel MinByValue(PointModel[] source)
