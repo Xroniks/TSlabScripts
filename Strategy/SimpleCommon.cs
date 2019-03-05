@@ -39,10 +39,8 @@ namespace Simple
 {
     public class SimpleCommon
     {
-        public static List<long> searchBuyModelTime = new List<long>();
-        public static List<long> searchPointBTime = new List<long>();
-        public static List<long> searchRealPointATime = new List<long>();
-        public static List<long> searchPointCTime = new List<long>();
+        public static List<long> searchModelTime = new List<long>();
+        public static List<long> createOrderTime = new List<long>();
         
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -75,7 +73,6 @@ namespace Simple
         
         public void BaseExecute(IContext ctx, ISecurity source)
         {   
-            var eWatch = new Stopwatch();  
             var sWatch = new Stopwatch();  
             var allWatch = new Stopwatch();  
             
@@ -97,12 +94,13 @@ namespace Simple
             var indicators = AddIndicatorOnMainPain(ctx, source, pain);
 
             // Инцализировать индикатор моделей пустыми значениями
-            var buySignal = Enumerable.Repeat((double)0, source.Bars.Count).ToList();
-            var sellSignal = Enumerable.Repeat((double)0, source.Bars.Count).ToList();
+            var barsCount = source.Bars.Count;
+            var buySignal = Enumerable.Repeat((double)0, barsCount).ToList();
+            var sellSignal = Enumerable.Repeat((double)0, barsCount).ToList();
 
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch, eWatch);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -117,10 +115,8 @@ namespace Simple
             
             ctx.Log("---------------------------------------");
             ctx.Log("Время общее: " + allWatch.ElapsedTicks);
-            ctx.Log("searchBuyModelTime: " + searchBuyModelTime.Sum());
-            ctx.Log("searchPointBTime: " + searchPointBTime.Sum());
-            ctx.Log("searchRealPointATime: " + searchRealPointATime.Sum());
-            ctx.Log("searchPointCTime: " + searchPointCTime.Sum());
+            ctx.Log("searchModelTime: " + searchModelTime.Sum());
+            ctx.Log("createOrderTime: " + createOrderTime.Sum());
             ctx.Log("---------------------------------------");
         }
 
@@ -134,11 +130,10 @@ namespace Simple
             ISecurity source,
             ISecurity compressSource,
             int actualBar,
-            List<double> buySignal,
-            List<double> sellSignal,
+            IList<double> buySignal,
+            IList<double> sellSignal,
             Indicators indicators, 
-            Stopwatch sWatch, 
-            Stopwatch eWatch)
+            Stopwatch sWatch)
         {
             if (source.Bars[actualBar].Date.TimeOfDay < TimeBeginBar) return;
             
@@ -157,6 +152,8 @@ namespace Simple
             {
                 SearchActivePosition(source, actualBar, indicators);
             }
+            
+            sWatch.Start();
                         
             if (IsClosedBar(source.Bars[actualBar]))
             {
@@ -166,8 +163,6 @@ namespace Simple
 
                 // Поиск моделей, информация о моделях пишется в "StoreObject"
                 // Модели ищутся только на открытии бара, а валидируются каждые 5 секунд
-                
-                sWatch.Start();
 
                 var highPoints = compressSource.Bars
                     .Skip(indexBeginDayBar)
@@ -179,20 +174,20 @@ namespace Simple
                     .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
                     .ToList();
                 
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, eWatch, highPoints, lowPoints);
-                
-                sWatch.Stop();
-                searchBuyModelTime.Add(sWatch.ElapsedTicks);
-                sWatch.Reset();
-                
+                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
+            
+            sWatch.Stop();
+            searchModelTime.Add(sWatch.ElapsedTicks);
+            sWatch.Reset();
+            
+            sWatch.Start();
             
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
-                
                 foreach (var model in buyList)
                 {
                     CreateBuyOrder(source, actualBar, model, indicators);
@@ -211,11 +206,20 @@ namespace Simple
                 }
                 ctx.StoreObject("SellList", sellList);
             }
+            
+            sWatch.Stop();
+            createOrderTime.Add(sWatch.ElapsedTicks);
+            sWatch.Reset();
         }
 
         public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage, "buy_" + model.GetNamePosition);
+            source.Positions.BuyIfGreater(
+                actualBar + 1, 
+                Value, model.EnterPrice, 
+                Slippage, 
+                "buy_" + model.GetNamePosition,
+                model.Note);
         }
 
         public virtual void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
@@ -223,34 +227,29 @@ namespace Simple
             source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
         }
 
-        private void SearchBuyModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar,
-            int actualBar, List<double> buySignal, Stopwatch eWatch, List<PointModel> highPoints, List<PointModel> lowPoints)
+        private void SearchBuyModel(
+            IContext ctx, 
+            ISecurity compressSource, 
+            int indexCompressBar, 
+            int indexBeginDayBar,
+            int actualBar, 
+            IList<double> buySignal, 
+            IReadOnlyCollection<PointModel> highPoints, 
+            IReadOnlyCollection<PointModel> lowPoints)
         {
             var modelBuyList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
-                eWatch.Start();
-                
                 var pointB = MaxByValue(highPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(indexCompressBar - indexPointA + 1)
                     .ToArray());
-                
-                eWatch.Stop();
-                searchPointBTime.Add(eWatch.ElapsedTicks);
-                eWatch.Reset();
-                
-                eWatch.Start();
 
                 var realPointA = MinByValue(lowPoints
                     .Skip(indexPointA - indexBeginDayBar)
                     .Take(pointB.Index - indexPointA + 1)
                     .ToArray());
-                
-                eWatch.Stop();
-                searchRealPointATime.Add(eWatch.ElapsedTicks);
-                eWatch.Reset();
                 
                 // Точки A и B не могут быть на одном баре
                 if (pointB.Index == realPointA.Index) continue;
@@ -262,23 +261,16 @@ namespace Simple
                 // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
                 if(DistanceFromCrossing != -1
                    && pointB.Index - realPointA.Index - 1 > 0
-                   && highPoints
-                       .Select(x => x.Value)
+                   && MaxByValue(highPoints
                        .Skip(realPointA.Index + 1 - indexBeginDayBar)
                        .Take(pointB.Index - realPointA.Index - 1)
-                       .Max() >= pointB.Value - DistanceFromCrossing) continue;
-                
-                eWatch.Start();
+                       .ToArray()).Value >= pointB.Value - DistanceFromCrossing) continue;
                 
                 var pointC = MinByValue(lowPoints
                     .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
                     .ToArray());
                 
-                eWatch.Stop();
-                searchPointCTime.Add(eWatch.ElapsedTicks);
-                eWatch.Reset();
-
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
 
@@ -290,9 +282,9 @@ namespace Simple
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
                    && highPoints
-                       .Select(x => x.Value)
                        .Skip(pointB.Index + 1 - indexBeginDayBar)
                        .Take(pointC.Index - pointB.Index - 1)
+                       .Select(x => x.Value)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
                 
                 var model = GetNewBuyTradingModel(pointB.Value, bc);
@@ -300,9 +292,9 @@ namespace Simple
                 if (indexCompressBar != pointC.Index)
                 { 
                     var validateMax = highPoints
-                        .Select(x => x.Value)
                         .Skip(pointC.Index + 1 - indexBeginDayBar)
                         .Take(indexCompressBar - pointC.Index)
+                        .Select(x => x.Value)
                         .Max();
                     if (model.EnterPrice <= validateMax) continue;
                 }
@@ -319,10 +311,17 @@ namespace Simple
             ctx.StoreObject("BuyModel", modelBuyList);
         }
 
-        private void SearchSellModel(IContext ctx, ISecurity compressSource, int indexCompressBar, int indexBeginDayBar, 
-            int actualBar, List<double> sellSignal, List<PointModel> highPoints, List<PointModel> lowPoints)
+        private void SearchSellModel(
+            IContext ctx, 
+            ISecurity compressSource, 
+            int indexCompressBar, 
+            int indexBeginDayBar, 
+            int actualBar, 
+            IList<double> sellSignal,
+            IReadOnlyCollection<PointModel> highPoints, 
+            IReadOnlyCollection<PointModel> lowPoints)
         {
-            List<TradingModel> modelSellList = new List<TradingModel>();
+            var modelSellList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -347,9 +346,9 @@ namespace Simple
                 if(DistanceFromCrossing != -1 
                    && pointB.Index - realPointA.Index - 1 > 0
                    && lowPoints
-                       .Select(x => x.Value)
                        .Skip(realPointA.Index + 1 - indexBeginDayBar)
                        .Take(pointB.Index - realPointA.Index - 1)
+                       .Select(x => x.Value)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
                 var pointC = MaxByValue(highPoints
@@ -368,9 +367,9 @@ namespace Simple
                 if(DistanceFromCrossing != -1 
                    && pointC.Index - pointB.Index - 1 > 0
                    && lowPoints
-                       .Select(x => x.Value)
                        .Skip(pointB.Index + 1 - indexBeginDayBar)
                        .Take(pointC.Index - pointB.Index - 1)
+                       .Select(x => x.Value)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
                 
                 var model = GetNewSellTradingModel(pointB.Value, bc);
@@ -378,9 +377,9 @@ namespace Simple
                 if (indexCompressBar != pointC.Index)
                 {
                     var validateMin = lowPoints
-                        .Select(x => x.Value)
                         .Skip(pointC.Index + 1 - indexBeginDayBar)
                         .Take(indexCompressBar - pointC.Index)
+                        .Select(x => x.Value)
                         .Min();
                     if (model.EnterPrice >= validateMin) continue;
                 }
@@ -525,7 +524,8 @@ namespace Simple
                 Value = value,
                 EnterPrice = value - ScopeDelta,
                 StopPrice = value - ScopeStop,
-                ProfitPrice = value + ScopeProfit
+                ProfitPrice = value + ScopeProfit,
+                Note = (value * DateTime.Now.Ticks).ToString()
             };
         }
 
@@ -582,6 +582,8 @@ namespace Simple
         public double StopPrice { get; set; }
 
         public double ProfitPrice { get; set; }
+        
+        public string Note { get; set; }
 
         public string GetNamePosition
         {

@@ -11,6 +11,8 @@ namespace TSLabScripts
         public OptimProperty MultyplayDelta = new OptimProperty(1.03, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
+        public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
+        public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
         
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
@@ -26,9 +28,9 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - Math.Round(Math.Log(bc / 100.0, MultyplayDelta) / 10.0, 0) * 10.0,
-                StopPrice = value - Math.Round(Math.Log(bc / 100.0, MultyplayStop) / 10.0, 0) * 10.0,
-                ProfitPrice = value + Math.Round(Math.Log(bc / 100.0, MultyplayProfit) / 10.0, 0) * 10.0
+                EnterPrice = value - CalculatePrice(bc, MultyplayDelta),
+                StopPrice = value - CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value + CalculatePrice(bc, MultyplayProfit)
             };
         }
 
@@ -37,10 +39,15 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + Math.Round(Math.Log(bc / 100.0, MultyplayDelta) / 10.0, 0) * 10.0,
-                StopPrice = value + Math.Round(Math.Log(bc / 100.0, MultyplayStop) / 10.0, 0) * 10.0,
-                ProfitPrice = value - Math.Round(Math.Log(bc / 100.0, MultyplayProfit) / 10.0, 0) * 10.0
+                EnterPrice = value + CalculatePrice(bc, MultyplayDelta),
+                StopPrice = value + CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value - CalculatePrice(bc, MultyplayProfit)
             };
+        }
+
+        protected double CalculatePrice(double bc, double baseLogarithm)
+        {
+            return Math.Round(Math.Log(bc / MultyplayDivider, baseLogarithm) / PriceStep, 0) * PriceStep;
         }
         
         protected override Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
