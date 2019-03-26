@@ -38,10 +38,8 @@ using TSLab.Script.Optimization;
 namespace Simple
 {
     public class SimpleCommon
-    {
-        public static List<long> searchModelTime = new List<long>();
-        public static List<long> createOrderTime = new List<long>();
-        
+    {       
+        public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -74,12 +72,7 @@ namespace Simple
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
-        {   
-            var sWatch = new Stopwatch();  
-            var allWatch = new Stopwatch();  
-            
-            allWatch.Start();
-            
+        {            
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -102,7 +95,7 @@ namespace Simple
 
             for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators, sWatch);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -112,14 +105,6 @@ namespace Simple
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
-            
-            allWatch.Stop();
-            
-            ctx.Log("---------------------------------------");
-            ctx.Log("Время общее: " + allWatch.ElapsedTicks);
-            ctx.Log("searchModelTime: " + searchModelTime.Sum());
-            ctx.Log("createOrderTime: " + createOrderTime.Sum());
-            ctx.Log("---------------------------------------");
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -134,8 +119,7 @@ namespace Simple
             int actualBar,
             IList<double> buySignal,
             IList<double> sellSignal,
-            Indicators indicators, 
-            Stopwatch sWatch)
+            Indicators indicators)
         {
             if (source.Bars[actualBar].Date.TimeOfDay < GetTimeBeginBar()) return;
             
@@ -154,8 +138,6 @@ namespace Simple
             {
                 SearchActivePosition(source, actualBar, indicators);
             }
-            
-            sWatch.Start();
                         
             if (IsClosedBar(source.Bars[actualBar]))
             {
@@ -180,19 +162,17 @@ namespace Simple
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
             
-            sWatch.Stop();
-            searchModelTime.Add(sWatch.ElapsedTicks);
-            sWatch.Reset();
-            
-            sWatch.Start();
-            
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
-                foreach (var model in buyList)
+
+                if (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                 {
-                    CreateBuyOrder(source, actualBar, model, indicators);
+                    foreach (var model in buyList)
+                    {
+                        CreateBuyOrder(source, actualBar, model, indicators);
+                    }
                 }
                 
                 ctx.StoreObject("BuyModel", buyList);
@@ -202,16 +182,17 @@ namespace Simple
             if (modelSellList.Any())
             {
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
-                foreach (var model in sellList)
+
+                if (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                 {
-                    CreateSellOrder(source, actualBar, model, indicators);
+                    foreach (var model in sellList)
+                    {
+                        CreateSellOrder(source, actualBar, model, indicators);
+                    }
                 }
+
                 ctx.StoreObject("SellList", sellList);
             }
-            
-            sWatch.Stop();
-            createOrderTime.Add(sWatch.ElapsedTicks);
-            sWatch.Reset();
         }
 
         public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
