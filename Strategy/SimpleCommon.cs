@@ -41,6 +41,10 @@ namespace Simple
     {       
         public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
+        
+        public OptimProperty StartTime = new OptimProperty(100000, 000000, 240000, 1);
+        public OptimProperty StopTime = new OptimProperty(180000, 000000, 240000, 1);
+        
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 1000, 0.01);
@@ -59,6 +63,8 @@ namespace Simple
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
         public TimeSpan DeltaPositionTimeSpan;
+        public TimeSpan StartTimeTimeSpan;
+        public TimeSpan StopTimeTimeSpan;
 
         public TimeSpan TimeBeginBarForFiveMinutes = new TimeSpan(10, 04, 55);
         public TimeSpan TimeBeginBarForOneMinutes = new TimeSpan(10, 0, 55);
@@ -69,6 +75,18 @@ namespace Simple
         {
             DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
             DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
+
+            var StartTimeString = StartTime.ToString();
+            StartTimeTimeSpan = new TimeSpan(
+                Convert.ToInt32(StartTimeString.Take(2).ToString()), 
+                Convert.ToInt32(StartTimeString.Skip(2).Take(2).ToString()), 
+                Convert.ToInt32(StartTimeString.Skip(4).ToString()));
+            
+            var StopTimeString = StopTime.ToString();
+            StopTimeTimeSpan = new TimeSpan(
+                Convert.ToInt32(StopTimeString.Take(2).ToString()), 
+                Convert.ToInt32(StopTimeString.Skip(2).Take(2).ToString()), 
+                Convert.ToInt32(StopTimeString.Skip(4).ToString()));
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
@@ -161,13 +179,17 @@ namespace Simple
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
+
+            var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
+            var canOpenPosition = MultyPosition > 0 || source.Positions.ActivePositionCount == 0
+                                  && timeActualBar > StartTimeTimeSpan && timeActualBar < StopTimeTimeSpan;
             
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
 
-                if (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
+                if (canOpenPosition)
                 {
                     foreach (var model in buyList)
                     {
@@ -183,7 +205,7 @@ namespace Simple
             {
                 var sellList = ValidateSellModel(source, modelSellList, actualBar);
 
-                if (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
+                if (canOpenPosition)
                 {
                     foreach (var model in sellList)
                     {
