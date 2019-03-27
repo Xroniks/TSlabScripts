@@ -42,8 +42,8 @@ namespace Simple
         public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
         
-        public OptimProperty StartTime = new OptimProperty(100000, 000000, 240000, 1);
-        public OptimProperty StopTime = new OptimProperty(180000, 000000, 240000, 1);
+        public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
+        public OptimProperty StopTime = new OptimProperty(120000, 100000, 240000, 1);
         
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -76,17 +76,17 @@ namespace Simple
             DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
             DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
 
-            var StartTimeString = StartTime.ToString();
+            var StartTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(StartTimeString.Take(2).ToString()), 
-                Convert.ToInt32(StartTimeString.Skip(2).Take(2).ToString()), 
-                Convert.ToInt32(StartTimeString.Skip(4).ToString()));
-            
-            var StopTimeString = StopTime.ToString();
+                Convert.ToInt32(StartTimeString.Substring(0, 2)), 
+                Convert.ToInt32(StartTimeString.Substring(2, 2)), 
+                Convert.ToInt32(StartTimeString.Substring(4, 2)));
+
+            var StopTimeString = StopTime.Value.ToString();
             StopTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(StopTimeString.Take(2).ToString()), 
-                Convert.ToInt32(StopTimeString.Skip(2).Take(2).ToString()), 
-                Convert.ToInt32(StopTimeString.Skip(4).ToString()));
+                Convert.ToInt32(StopTimeString.Substring(0, 2)), 
+                Convert.ToInt32(StopTimeString.Substring(2, 2)), 
+                Convert.ToInt32(StopTimeString.Substring(4, 2)));
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
@@ -181,7 +181,7 @@ namespace Simple
             }
 
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
-            var canOpenPosition = MultyPosition > 0 || source.Positions.ActivePositionCount == 0
+            var canOpenPosition = (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                                   && timeActualBar > StartTimeTimeSpan && timeActualBar < StopTimeTimeSpan;
             
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
