@@ -22,13 +22,24 @@
  *  - LengthSegmentBC, ограничивает разницу между уровнями цен точек В и С. Все модели у которых разница будет МЕНЬШЕ установленной, будут пропускаться
  *  - DistanceFromCrossing, ограничивает насколько близко может приближаться цена на отрезках АВ и ВС к уровню цены точки В. Значение -1, отключает ограничение
  *
- *  - DeltaModelSpan, ограничивает время ожидания ВХОДА в позицию. При значении "0" ограничение не работает. Ограничение задается в минутах.
- *  - DeltaPositionSpan, ограничивает время ожидания ВЫХОДА из позиции. При значении "0" ограничение не работает. Ограничение задается в минутах.
+ *  - DeltaModelSpan, ограничивает время ожидания ВХОДА в позицию. При значении "-1" ограничение не работает. Ограничение задается в минутах.
+ *  - DeltaPositionSpan, ограничивает время ожидания ВЫХОДА из позиции. При значении "-1" ограничение не работает. Ограничение задается в минутах.
+ *
+ *  Формирует часовой таймфрейм. При валидации модели опираемся на High и Low предыдущего часа
+ *  BeforeHourlyBar и AfterHourlyBar формирует диапазон под и над High часового бара (для Long модели)
+ *  - BeforeHourlyBar, сигнал на вход формируется если разница между High и ценой входа не больше указанного значения. При значении "-1" ограничение не работает.
+ *  - AfterHourlyBar, сигнал на вход формируется если разница между High и ценой входа не больше указанного значения. При значении "-1" ограничение не работает. Ограничение задается в минутах.
+ *
+ *  - MultyPosition, при 0 - не выставляет ордера на вход если есть активная позиция. 1 - включено, 0 - выключено
+ *  - DataInterval, таймфрейм для формирования моделей. 1 или 5 минут (с иными вариантами не тестировалось)
+ * 
+ *  - StartTime, время с которого НАЧНУТ выставляться ордера на вход. 10:00:00 => 100000
+ *  - StopTime, время с которого ЗАКОНЧАТ выставляться ордера на вход. 18:00:00 => 180000
+ * 
 */
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -43,7 +54,7 @@ namespace Simple
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
         
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
-        public OptimProperty StopTime = new OptimProperty(120000, 100000, 240000, 1);
+        public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
         
         public OptimProperty Value = new OptimProperty(1, 0, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
@@ -55,8 +66,11 @@ namespace Simple
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
         public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
         
-        public OptimProperty DeltaModelSpan = new OptimProperty(0, 0, 1140, 1);
-        public OptimProperty DeltaPositionSpan = new OptimProperty(0, 0, 1140, 1);
+        public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
+        public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
+        
+        public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
+        public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
 
         public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
@@ -73,8 +87,8 @@ namespace Simple
 
         public void Init()
         {
-            DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
-            DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
+            if(DeltaModelSpan != -1) DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
+            if(DeltaPositionSpan != -1) DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
 
             var StartTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
@@ -97,10 +111,12 @@ namespace Simple
             if (!GetValidTimeFrame(ctx, source)) return;
 
             // Компрессия исходного таймфрейма в пятиминутный
-            var compressSource = source.CompressTo(new Interval(DataInterval, DataIntervals.MINUTE), 0, 200, 0);
+            var compressSource = source.CompressTo(new Interval(DataInterval, DataIntervals.MINUTE));
+            var hourlySource = source.CompressTo(new Interval(60, DataIntervals.MINUTE));
 
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 70, false);
+            pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
@@ -111,9 +127,9 @@ namespace Simple
             var buySignal = Enumerable.Repeat((double)0, barsCount).ToList();
             var sellSignal = Enumerable.Repeat((double)0, barsCount).ToList();
 
-            for (var historyBar = 1; historyBar <= source.Bars.Count - 1; historyBar++)
+            for (var historyBar = 1; historyBar < source.Bars.Count; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
+                Trading(ctx, source, compressSource, hourlySource, historyBar, buySignal, sellSignal, indicators);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 15, false);
@@ -134,6 +150,7 @@ namespace Simple
         private void Trading(IContext ctx,
             ISecurity source,
             ISecurity compressSource,
+            ISecurity hourlySource,
             int actualBar,
             IList<double> buySignal,
             IList<double> sellSignal,
@@ -155,6 +172,11 @@ namespace Simple
             if (source.Positions.ActivePositionCount > 0)
             {
                 SearchActivePosition(source, actualBar, indicators);
+            }
+
+            if (IsClosedHourlyBar(source.Bars[actualBar].Date))
+            {
+                ctx.StoreObject("HourlyBar", hourlySource.Bars.LastOrDefault());
             }
                         
             if (IsClosedBar(source.Bars[actualBar]))
@@ -187,7 +209,7 @@ namespace Simple
             var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
             if (modelBuyList.Any())
             {
-                var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
+                var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
 
                 if (canOpenPosition)
                 {
@@ -203,7 +225,7 @@ namespace Simple
             var modelSellList = (List<TradingModel>)ctx.LoadObject("SellModel") ?? new List<TradingModel>();
             if (modelSellList.Any())
             {
-                var sellList = ValidateSellModel(source, modelSellList, actualBar);
+                var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
 
                 if (canOpenPosition)
                 {
@@ -401,7 +423,11 @@ namespace Simple
             ctx.StoreObject("SellModel", modelSellList);
         }
 
-        private List<TradingModel> ValidateBuyModel(ISecurity source, List<TradingModel> modelBuyList, int actualBar)
+        private List<TradingModel> ValidateBuyModel(
+            IContext ctx, 
+            ISecurity source,
+            IReadOnlyCollection<TradingModel> modelBuyList,
+            int actualBar)
         {
             var lastMax = double.MinValue;
 
@@ -410,10 +436,26 @@ namespace Simple
                 lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
             }
 
-            return modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
+            var result = modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
+
+            if (!result.Any()) return result;
+
+            var hourlyBar = (IDataBar) ctx.LoadObject("HourlyBar");
+            if (hourlyBar == null) return result;
+            
+            return result.Where(model =>
+            {
+                if (BeforeHourlyBar != -1 && hourlyBar.High - BeforeHourlyBar > model.EnterPrice) return false;
+                if (AfterHourlyBar != -1 && hourlyBar.High + AfterHourlyBar < model.EnterPrice) return false;
+                return true;
+            }).ToList();
         }
 
-        private List<TradingModel> ValidateSellModel(ISecurity source, List<TradingModel> modelSellList, int actualBar)
+        private List<TradingModel> ValidateSellModel(
+            IContext ctx,
+            ISecurity source, 
+            IReadOnlyCollection<TradingModel> modelSellList, 
+            int actualBar)
         {
             var lastMin = double.MaxValue;
 
@@ -422,7 +464,20 @@ namespace Simple
                 lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
             }
 
-            return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
+            var result = modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
+            
+            if (!result.Any()) return result;
+
+            var hourlyBar = (IDataBar) ctx.LoadObject("HourlyBar");
+            if (hourlyBar == null) return result;
+
+
+            return result.Where(model =>
+            {
+                if (BeforeHourlyBar != -1 && hourlyBar.Low + BeforeHourlyBar < model.EnterPrice) return false;
+                if (AfterHourlyBar != -1 && hourlyBar.Low - AfterHourlyBar > model.EnterPrice) return false;
+                return true;
+            }).ToList();
         }
 
         private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
@@ -516,10 +571,16 @@ namespace Simple
             return indexCompressBar;
         }
         
-        private bool IsClosedBar(IDataBar bar)
+        public bool IsClosedBar(IDataBar bar)
         {
             // можно гарантировать что "TotalSeconds" будет не дробным, так как система работает на интервале 5 секунд.
             return ((int)bar.Date.TimeOfDay.TotalSeconds + 5) % (DataInterval * 60) == 0;
+        }
+        
+        public bool IsClosedHourlyBar(DateTime date)
+        {
+            // можно гарантировать что "TotalSeconds" будет не дробным, так как система работает на интервале 5 секунд.
+            return ((int)date.TimeOfDay.TotalSeconds + 5) % (60 * 60) == 0;
         }
         
         protected virtual TradingModel GetNewBuyTradingModel(double value, double bc)
