@@ -175,8 +175,8 @@ namespace Simple
             }
 
             if (IsClosedHourlyBar(source.Bars[actualBar].Date))
-            {
-                ctx.StoreObject("HourlyBar", hourlySource.Bars.LastOrDefault());
+            {   var dateActualBar = source.Bars[actualBar].Date;
+                ctx.StoreObject("HourlyBar", hourlySource.Bars.LastOrDefault(b => b.Date < dateActualBar));
             }
                         
             if (IsClosedBar(source.Bars[actualBar]))
@@ -245,13 +245,16 @@ namespace Simple
                 actualBar + 1, 
                 Value, model.EnterPrice, 
                 Slippage, 
-                "buy_" + model.GetNamePosition,
-                model.Note);
+                "buy_" + model.GetNamePosition);
         }
 
         public virtual void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage, "sell_" + model.GetNamePosition);
+            source.Positions.SellIfLess(
+                actualBar + 1, 
+                Value, model.EnterPrice, 
+                Slippage, 
+                "sell_" + model.GetNamePosition);
         }
 
         private void SearchBuyModel(
@@ -590,8 +593,7 @@ namespace Simple
                 Value = value,
                 EnterPrice = value - ScopeDelta,
                 StopPrice = value - ScopeStop,
-                ProfitPrice = value + ScopeProfit,
-                Note = (value * DateTime.Now.Ticks).ToString()
+                ProfitPrice = value + ScopeProfit
             };
         }
 
@@ -658,8 +660,6 @@ namespace Simple
         public double StopPrice { get; set; }
 
         public double ProfitPrice { get; set; }
-        
-        public string Note { get; set; }
 
         public string GetNamePosition
         {
