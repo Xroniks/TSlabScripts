@@ -40,6 +40,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -85,6 +86,11 @@ namespace Simple
         public TimeSpan TimeOneBarForFiveMinutes = new TimeSpan(0, 5, 0);
         public TimeSpan TimeOneBarForOneMinutes = new TimeSpan(0, 1, 0);
 
+        private int count;
+        private Stopwatch allStopwatch;
+        private Stopwatch modelStopwatch;
+        private Stopwatch oneModelStopwatch;
+
         public void Init()
         {
             if(DeltaModelSpan != -1) DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
@@ -104,7 +110,11 @@ namespace Simple
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
-        {            
+        {          
+            allStopwatch = new Stopwatch();
+            modelStopwatch = new Stopwatch();
+            oneModelStopwatch = new Stopwatch();
+            allStopwatch.Start();
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -139,6 +149,12 @@ namespace Simple
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
+            
+            allStopwatch.Stop();
+            ctx.Log("Время выполнения: " + (decimal)allStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Время поиска моделей: " + (decimal)modelStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Время последнего поиска: " + (decimal)oneModelStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Расчет модели был произведен: " + count + "раз");
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -181,6 +197,10 @@ namespace Simple
                         
             if (IsClosedBar(source.Bars[actualBar]))
             {
+                count++;
+                modelStopwatch.Start();
+                oneModelStopwatch.Reset();
+                oneModelStopwatch.Start();
                 var dateActualBar = source.Bars[actualBar].Date;
                 var indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
                 var indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
@@ -200,13 +220,23 @@ namespace Simple
                 
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
+                modelStopwatch.Stop();
+                oneModelStopwatch.Stop();
             }
 
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
             var canOpenPosition = (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                                   && timeActualBar > StartTimeTimeSpan && timeActualBar < StopTimeTimeSpan;
-            
-            var modelBuyList = (List<TradingModel>)ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
+
+            var modelBuyList = new List<TradingModel>();
+            try
+            {
+                modelBuyList = (List<TradingModel>) ctx.LoadObject("BuyModel");
+            }
+            catch (Exception e)
+            {
+                ctx.Log(e.ToString());
+            }
             if (modelBuyList.Any())
             {
                 var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
@@ -221,8 +251,18 @@ namespace Simple
                 
                 ctx.StoreObject("BuyModel", buyList);
             }
+
+            var modelSellList = new List<TradingModel>();
+
+            try
+            {
+                modelSellList = (List<TradingModel>) ctx.LoadObject("SellModel");
+            }
+            catch (Exception e)
+            {
+                ctx.Log(e.ToString());
+            }
             
-            var modelSellList = (List<TradingModel>)ctx.LoadObject("SellModel") ?? new List<TradingModel>();
             if (modelSellList.Any())
             {
                 var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
@@ -553,11 +593,12 @@ namespace Simple
         
         private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
         {
-            return compressSource.Bars.ToList().FindIndex(item =>
-                    item.Date.TimeOfDay == TimeBeginDayBar &&
-                    item.Date.Day == dateActualBar.Day &&
-                    item.Date.Month == dateActualBar.Month &&
-                    item.Date.Year == dateActualBar.Year);
+            var result = compressSource.Bars.ToList().FindLastIndex(item =>
+                item.Date.TimeOfDay == TimeBeginDayBar &&
+                item.Date.Day == dateActualBar.Day &&
+                item.Date.Month == dateActualBar.Month &&
+                item.Date.Year == dateActualBar.Year);
+            return result >= 0 ? result : 0;
           
         }
 
