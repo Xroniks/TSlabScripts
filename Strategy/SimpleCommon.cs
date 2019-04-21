@@ -228,55 +228,55 @@ namespace Simple
             var canOpenPosition = (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                                   && timeActualBar > StartTimeTimeSpan && timeActualBar < StopTimeTimeSpan;
 
-            var modelBuyList = new List<TradingModel>();
             try
             {
-                modelBuyList = (List<TradingModel>) ctx.LoadObject("BuyModel");
-            }
-            catch (Exception e)
-            {
-                ctx.Log(e.ToString());
-            }
-            if (modelBuyList.Any())
-            {
-                var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
+                var modelBuyList = (List<TradingModel>) ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
 
-                if (canOpenPosition)
+                if (modelBuyList.Any())
                 {
-                    foreach (var model in buyList)
+                    var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
+
+                    if (canOpenPosition)
                     {
-                        CreateBuyOrder(source, actualBar, model, indicators);
+                        foreach (var model in buyList)
+                        {
+                            CreateBuyOrder(source, actualBar, model, indicators);
+                        }
                     }
+
+                    ctx.StoreObject("BuyModel", buyList);
                 }
-                
-                ctx.StoreObject("BuyModel", buyList);
-            }
-
-            var modelSellList = new List<TradingModel>();
-
-            try
-            {
-                modelSellList = (List<TradingModel>) ctx.LoadObject("SellModel");
             }
             catch (Exception e)
             {
                 ctx.Log(e.ToString());
             }
             
-            if (modelSellList.Any())
+
+            try
             {
-                var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
-
-                if (canOpenPosition)
+                var modelSellList = (List<TradingModel>) ctx.LoadObject("SellModel") ?? new List<TradingModel>();
+                if (modelSellList.Any())
                 {
-                    foreach (var model in sellList)
-                    {
-                        CreateSellOrder(source, actualBar, model, indicators);
-                    }
-                }
+                    var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
 
-                ctx.StoreObject("SellList", sellList);
+                    if (canOpenPosition)
+                    {
+                        foreach (var model in sellList)
+                        {
+                            CreateSellOrder(source, actualBar, model, indicators);
+                        }
+                    }
+
+                    ctx.StoreObject("SellList", sellList);
+                }
             }
+            catch (Exception e)
+            {
+                ctx.Log(e.ToString());
+            }
+            
+
         }
 
         public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
