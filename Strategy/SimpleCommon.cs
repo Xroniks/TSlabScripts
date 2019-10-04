@@ -73,7 +73,7 @@ namespace Simple
         public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
 
-        public TimeSpan TimeCloseAllPosition = new TimeSpan(18, 40, 00);
+        public TimeSpan TimeCloseAllPosition = new TimeSpan(23, 59, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
