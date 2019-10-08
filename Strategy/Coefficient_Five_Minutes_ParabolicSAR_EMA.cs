@@ -25,7 +25,7 @@ namespace TSLabScripts
             BaseExecute(ctx, source);
         }
 
-        protected override TradingModel GetNewBuyTradingModel(double value, double bc)
+        protected override TradingModel GetNewLongTradingModel(double value, double bc)
         {
             return new TradingModel
             {
@@ -36,7 +36,7 @@ namespace TSLabScripts
             };
         }
 
-        protected override TradingModel GetNewSellTradingModel(double value, double bc)
+        protected override TradingModel GetNewShortTradingModel(double value, double bc)
         {
             return new TradingModel
             {

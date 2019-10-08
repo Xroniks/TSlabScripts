@@ -82,6 +82,9 @@ namespace Simple
         public Boolean IsReverseMode;
         public Boolean IsHourlyMode;
 
+        public string ShortModelKey = "ShortModel";
+        public string LongModelKey = "LongModel";
+
         public void Init()
         {
             if(DeltaModelSpan != -1) DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
@@ -208,77 +211,93 @@ namespace Simple
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, buySignal, highPoints, lowPoints);
             }
 
+            try
+            {
+                CreateOpenPositionOrder(ctx, source, actualBar, indicators);
+            }
+            catch (Exception e)
+            {
+                ctx.Log(e.ToString());
+            }
+        }
+
+        private void CreateOpenPositionOrder(IContext ctx, ISecurity source, int actualBar, Indicators indicators)
+        {
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
             var canOpenPosition = (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
                                   && timeActualBar > StartTimeTimeSpan && timeActualBar < StopTimeTimeSpan;
 
-            try
-            {
-                var modelBuyList = (List<TradingModel>) ctx.LoadObject("BuyModel") ?? new List<TradingModel>();
+            var modelBuyList = (ctx.LoadObject(LongModelKey) ?? new List<TradingModel>()) as List<TradingModel>;
+            var modelSellList = (ctx.LoadObject(ShortModelKey) ?? new List<TradingModel>()) as List<TradingModel>;
 
-                if (modelBuyList.Any())
+            if (modelBuyList != null && modelBuyList.Any())
+            {
+                var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
+
+                if (canOpenPosition)
                 {
-                    var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
-
-                    if (canOpenPosition)
+                    foreach (var model in buyList)
                     {
-                        foreach (var model in buyList)
-                        {
-                            CreateBuyOrder(source, actualBar, model, indicators);
-                        }
+                        CreateBuyOrder(source, actualBar, model, indicators);
                     }
-
-                    ctx.StoreObject("BuyModel", buyList);
                 }
-            }
-            catch (Exception e)
-            {
-                ctx.Log(e.ToString());
-            }
-            
 
-            try
+                ctx.StoreObject(LongModelKey, buyList);
+            }
+
+            if (modelSellList != null && modelSellList.Any())
             {
-                var modelSellList = (List<TradingModel>) ctx.LoadObject("SellModel") ?? new List<TradingModel>();
-                if (modelSellList.Any())
+                var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
+
+                if (canOpenPosition)
                 {
-                    var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
-
-                    if (canOpenPosition)
+                    foreach (var model in sellList)
                     {
-                        foreach (var model in sellList)
-                        {
-                            CreateSellOrder(source, actualBar, model, indicators);
-                        }
+                        CreateSellOrder(source, actualBar, model, indicators);
                     }
-
-                    ctx.StoreObject("SellModel", sellList);
                 }
-            }
-            catch (Exception e)
-            {
-                ctx.Log(e.ToString());
-            }
-            
 
+                ctx.StoreObject(ShortModelKey, sellList);
+            }
         }
 
         public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            source.Positions.BuyIfGreater(
-                actualBar + 1, 
-                Value, model.EnterPrice, 
-                Slippage, 
-                "buy_" + model.GetNamePosition);
+            if (IsReverseMode)
+            {
+                source.Positions.BuyIfLess(
+                    actualBar + 1,
+                    Value, model.EnterPrice,
+                    Slippage,
+                    "buy_" + model.GetNamePosition);
+            }
+            else
+            {
+                source.Positions.BuyIfGreater(
+                    actualBar + 1,
+                    Value, model.EnterPrice,
+                    Slippage,
+                    "buy_" + model.GetNamePosition);
+            }
         }
 
         public virtual void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            source.Positions.SellIfLess(
-                actualBar + 1, 
-                Value, model.EnterPrice, 
-                Slippage, 
-                "sell_" + model.GetNamePosition);
+            if (IsReverseMode)
+            {
+                source.Positions.SellIfGreater(actualBar + 1,
+                    Value, model.EnterPrice,
+                    Slippage,
+                    "sell_" + model.GetNamePosition);
+            }
+            else
+            {
+                source.Positions.SellIfLess(
+                    actualBar + 1, 
+                    Value, model.EnterPrice, 
+                    Slippage, 
+                    "sell_" + model.GetNamePosition);
+            }
         }
 
         private void SearchBuyModel(
@@ -292,7 +311,7 @@ namespace Simple
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
-            var modelBuyList = new List<TradingModel>();
+            var models = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -342,7 +361,8 @@ namespace Simple
                        .Select(x => x.Value)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
                 
-                var model = GetNewBuyTradingModel(pointB.Value, bc);
+                var model = GetNewLongTradingModel(pointB.Value, bc);
+                
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
@@ -359,11 +379,11 @@ namespace Simple
                     compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
                     continue;
 
-                modelBuyList.Add(model);
+                models.Add(model);
                 buySignal[actualBar] = 1;
             }
 
-            ctx.StoreObject("BuyModel", modelBuyList);
+            ctx.StoreObject(IsReverseMode ? ShortModelKey : LongModelKey, models);
         }
 
         private void SearchSellModel(
@@ -428,7 +448,8 @@ namespace Simple
                        .Select(x => x.Value)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
                 
-                var model = GetNewSellTradingModel(pointB.Value, bc);
+                var model = GetNewShortTradingModel(pointB.Value, bc);
+                
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
@@ -446,10 +467,10 @@ namespace Simple
                     continue;
 
                 modelSellList.Add(model);
-                sellSignal[actualBar] = 1;
+                //sellSignal[actualBar] = 1;
             }
 
-            ctx.StoreObject("SellModel", modelSellList);
+            ctx.StoreObject(IsReverseMode ? LongModelKey : ShortModelKey, modelSellList);
         }
 
         private List<TradingModel> ValidateBuyModel(
@@ -613,25 +634,25 @@ namespace Simple
             return ((int)date.TimeOfDay.TotalSeconds + 5) % (60 * 60) == 0;
         }
         
-        protected virtual TradingModel GetNewBuyTradingModel(double value, double bc)
+        protected virtual TradingModel GetNewLongTradingModel(double value, double bc)
         {
             return new TradingModel
             {
                 Value = value,
                 EnterPrice = value - ScopeDelta,
-                StopPrice = value - ScopeStop,
-                ProfitPrice = value + ScopeProfit
+                StopPrice = IsReverseMode ? value + ScopeStop : value - ScopeStop,
+                ProfitPrice = IsReverseMode ? value - ScopeProfit : value + ScopeProfit
             };
         }
 
-        protected virtual TradingModel GetNewSellTradingModel(double value, double bc)
+        protected virtual TradingModel GetNewShortTradingModel(double value, double bc)
         {
             return new TradingModel
             {
                 Value = value,
                 EnterPrice = value + ScopeDelta,
-                StopPrice = value + ScopeStop,
-                ProfitPrice = value - ScopeProfit
+                StopPrice = IsReverseMode ? value - ScopeStop : value + ScopeStop,
+                ProfitPrice = IsReverseMode ? value + ScopeProfit : value - ScopeProfit
             };
         }
         
