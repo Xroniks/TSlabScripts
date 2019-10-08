@@ -72,24 +72,12 @@ namespace Simple
         
         public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
-
-        public TimeSpan TimeCloseAllPosition = new TimeSpan(23, 59, 00);
-        public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
+        
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
         public TimeSpan DeltaPositionTimeSpan;
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
-
-        public TimeSpan TimeBeginBarForFiveMinutes = new TimeSpan(10, 04, 55);
-        public TimeSpan TimeBeginBarForOneMinutes = new TimeSpan(10, 0, 55);
-        public TimeSpan TimeOneBarForFiveMinutes = new TimeSpan(0, 5, 0);
-        public TimeSpan TimeOneBarForOneMinutes = new TimeSpan(0, 1, 0);
-
-        private int count;
-        private Stopwatch allStopwatch;
-        private Stopwatch modelStopwatch;
-        private Stopwatch oneModelStopwatch;
 
         public void Init()
         {
@@ -110,11 +98,7 @@ namespace Simple
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
-        {          
-            allStopwatch = new Stopwatch();
-            modelStopwatch = new Stopwatch();
-            oneModelStopwatch = new Stopwatch();
-            allStopwatch.Start();
+        {
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -125,8 +109,8 @@ namespace Simple
             var hourlySource = source.CompressTo(new Interval(60, DataIntervals.MINUTE));
 
             // Генерация графика исходного таймфрейма
-            var pain = ctx.CreatePane("Original", 70, false);
-            pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
+            var pain = ctx.CreatePane("Original", 90, false);
+            //pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
@@ -142,19 +126,13 @@ namespace Simple
                 Trading(ctx, source, compressSource, hourlySource, historyBar, buySignal, sellSignal, indicators);
             }
             
-            var buyPain = ctx.CreatePane("BuySignal", 15, false);
+            var buyPain = ctx.CreatePane("BuySignal", 5, false);
             buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
 
-            var sellPain = ctx.CreatePane("SellSignal", 15, false);
+            var sellPain = ctx.CreatePane("SellSignal", 5, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
-            
-            allStopwatch.Stop();
-            ctx.Log("Время выполнения: " + (decimal)allStopwatch.ElapsedMilliseconds/1000 + "sec");
-            ctx.Log("Время поиска моделей: " + (decimal)modelStopwatch.ElapsedMilliseconds/1000 + "sec");
-            ctx.Log("Время последнего поиска: " + (decimal)oneModelStopwatch.ElapsedMilliseconds/1000 + "sec");
-            ctx.Log("Расчет модели был произведен: " + count + "раз");
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -175,7 +153,7 @@ namespace Simple
             if (source.Bars[actualBar].Date.TimeOfDay < GetTimeBeginBar()) return;
             
             // Если время 18:40 или более - закрыть все активные позиции и не торговать
-            if (source.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
+            if (source.Bars[actualBar].Date.TimeOfDay >= StopTimeTimeSpan)
             {
                 if (source.Positions.ActivePositionCount > 0)
                 {
@@ -197,10 +175,6 @@ namespace Simple
                         
             if (IsClosedBar(source.Bars[actualBar]))
             {
-                count++;
-                modelStopwatch.Start();
-                oneModelStopwatch.Reset();
-                oneModelStopwatch.Start();
                 var dateActualBar = source.Bars[actualBar].Date;
                 var indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
                 var indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
@@ -220,8 +194,6 @@ namespace Simple
                 
                 SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
                 SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
-                modelStopwatch.Stop();
-                oneModelStopwatch.Stop();
             }
 
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
@@ -268,7 +240,7 @@ namespace Simple
                         }
                     }
 
-                    ctx.StoreObject("SellList", sellList);
+                    ctx.StoreObject("SellModel", sellList);
                 }
             }
             catch (Exception e)
@@ -594,7 +566,7 @@ namespace Simple
         private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
         {
             var result = compressSource.Bars.ToList().FindLastIndex(item =>
-                item.Date.TimeOfDay == TimeBeginDayBar &&
+                item.Date.TimeOfDay == StartTimeTimeSpan &&
                 item.Date.Day == dateActualBar.Day &&
                 item.Date.Month == dateActualBar.Month &&
                 item.Date.Year == dateActualBar.Year);
@@ -651,12 +623,16 @@ namespace Simple
         
         protected TimeSpan GetTimeBeginBar()
         {
-            return DataInterval == 5 ? TimeBeginBarForFiveMinutes : TimeBeginBarForOneMinutes;
+            return DataInterval == 5 
+                ? new TimeSpan(10, 04, 55) 
+                : new TimeSpan(10, 0, 55);
         }
         
         protected TimeSpan GetTimeOneBar()
         {
-            return DataInterval == 5 ? TimeOneBarForFiveMinutes : TimeOneBarForOneMinutes;
+            return DataInterval == 5 
+                ? new TimeSpan(0, 5, 0) 
+                : new TimeSpan(0, 1, 0);
         }
         
         public static PointModel MinByValue(PointModel[] source)
