@@ -53,6 +53,7 @@ namespace Simple
     {       
         public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
+        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
         
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
@@ -78,6 +79,8 @@ namespace Simple
         public TimeSpan DeltaPositionTimeSpan;
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
+        public Boolean IsReverseMode;
+        public Boolean IsHourlyMode;
 
         public void Init()
         {
@@ -95,6 +98,9 @@ namespace Simple
                 Convert.ToInt32(StopTimeString.Substring(0, 2)), 
                 Convert.ToInt32(StopTimeString.Substring(2, 2)), 
                 Convert.ToInt32(StopTimeString.Substring(4, 2)));
+
+            IsReverseMode = ReverseMode > 0;
+            IsHourlyMode = BeforeHourlyBar != -1 || AfterHourlyBar != -1;
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
@@ -110,7 +116,13 @@ namespace Simple
 
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 90, false);
-            //pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
+
+            if (IsHourlyMode)
+            {
+                // todo выключить расчет если IsHourlyMode == false
+                pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
+            }
+            
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
@@ -192,8 +204,8 @@ namespace Simple
                     .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
                     .ToList();
                 
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
+                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, sellSignal, highPoints, lowPoints);
+                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, buySignal, highPoints, lowPoints);
             }
 
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
@@ -276,6 +288,7 @@ namespace Simple
             int indexBeginDayBar,
             int actualBar, 
             IList<double> buySignal, 
+            IList<double> sellSignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
@@ -360,6 +373,7 @@ namespace Simple
             int indexBeginDayBar, 
             int actualBar, 
             IList<double> sellSignal,
+            IList<double> buySignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {

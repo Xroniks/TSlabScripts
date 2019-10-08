@@ -93,7 +93,8 @@ namespace TSLabScripts
         public override void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
             var emaValue = indicators.EMA[actualBar];
-            if (emaValue > model.EnterPrice)
+            var parabolicValue = indicators.Parabolic[actualBar];
+            if (emaValue > model.EnterPrice && parabolicValue > model.EnterPrice)
             {
                 source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage,"sell_" + model.GetNamePosition);
             }
@@ -102,7 +103,8 @@ namespace TSLabScripts
         public override void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
             var emaValue = indicators.EMA[actualBar];
-            if (model.EnterPrice > emaValue)
+            var parabolicValue = indicators.Parabolic[actualBar];
+            if (model.EnterPrice > emaValue && model.EnterPrice > parabolicValue)
             {
                 source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage,"buy_" + model.GetNamePosition);
             }
