@@ -75,5 +75,23 @@ namespace TSLabScripts
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
+        
+        public override void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        {
+            var parabolicValue = indicators.Parabolic[actualBar];
+            if (parabolicValue > model.EnterPrice)
+            {
+                source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage,"sell_" + model.GetNamePosition);
+            }
+        }
+        
+        public override void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        {
+            var parabolicValue = indicators.Parabolic[actualBar];
+            if (model.EnterPrice > parabolicValue)
+            {
+                source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage,"buy_" + model.GetNamePosition);
+            }
+        }
     }
 }
