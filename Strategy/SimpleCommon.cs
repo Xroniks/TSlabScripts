@@ -547,33 +547,33 @@ namespace Simple
                 switch (arr[0])
                 {
                     case "buy":
-                        SetBuyProfit(actualBar, position, arr);
-                        SetBuyStop(actualBar, position, arr, indicators);
+                        SetBuyProfit(actualBar, position, arr, indicators);
+                        SetLongStop(actualBar, position, arr, indicators);
                         break;
                     case "sell":
-                        SetSellProfit(actualBar, position, arr);
-                        SetSellStop(actualBar, position, arr, indicators);
+                        SetSellProfit(actualBar, position, arr, indicators);
+                        SetShortStop(actualBar, position, arr, indicators);
                         break;
                 }
             }
         }
 
-        protected virtual void SetBuyProfit(int actualBar, IPosition position, string[] arr)
+        protected virtual void SetBuyProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
         
-        protected virtual void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected virtual void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
         }
         
-        protected virtual void SetSellProfit(int actualBar, IPosition position, string[] arr)
+        protected virtual void SetSellProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
 
-        protected virtual void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected virtual void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
         }

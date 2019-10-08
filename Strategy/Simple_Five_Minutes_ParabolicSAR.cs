@@ -31,14 +31,26 @@ namespace TSLabScripts
             return new Indicators { Parabolic = parabolic };
         }
 
-        protected override void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected override void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
+            if (IsReverseMode)
+            {
+                base.SetShortStop(actualBar, position, arr, indicators);
+                return;
+            }
+            
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
 
-        protected override void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected override void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
+            if (IsReverseMode)
+            {
+                base.SetLongStop(actualBar, position, arr, indicators);
+                return;
+            }
+            
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
@@ -47,7 +59,7 @@ namespace TSLabScripts
             var parabolicValue = indicators.Parabolic[actualBar];
             if (parabolicValue > model.EnterPrice)
             {
-                source.Positions.SellIfLess(actualBar + 1, Value, model.EnterPrice, Slippage,"sell_" + model.GetNamePosition);
+                base.CreateSellOrder(source, actualBar, model, indicators);
             }
         }
         
@@ -56,9 +68,8 @@ namespace TSLabScripts
             var parabolicValue = indicators.Parabolic[actualBar];
             if (model.EnterPrice > parabolicValue)
             {
-                source.Positions.BuyIfGreater(actualBar + 1, Value, model.EnterPrice, Slippage,"buy_" + model.GetNamePosition);
+                base.CreateBuyOrder(source, actualBar, model, indicators);
             }
         }
-        
     }
 }

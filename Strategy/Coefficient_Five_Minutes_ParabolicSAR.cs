@@ -64,13 +64,13 @@ namespace TSLabScripts
             return new Indicators { Parabolic = parabolic };
         }
 
-        protected override void SetSellStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected override void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
 
-        protected override void SetBuyStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        protected override void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
