@@ -53,7 +53,6 @@ namespace Simple
     {       
         public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
-        public OptimProperty ReverseModel = new OptimProperty(0, 0, 1, 1);
         
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
@@ -73,37 +72,49 @@ namespace Simple
         
         public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
-        
+
+        public TimeSpan TimeCloseAllPosition = new TimeSpan(23, 59, 00);
         public TimeSpan TimeBeginDayBar = new TimeSpan(10, 00, 00);
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
         public TimeSpan DeltaPositionTimeSpan;
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
-        public bool IsReverse;
+
+        public TimeSpan TimeBeginBarForFiveMinutes = new TimeSpan(10, 04, 55);
+        public TimeSpan TimeBeginBarForOneMinutes = new TimeSpan(10, 0, 55);
+        public TimeSpan TimeOneBarForFiveMinutes = new TimeSpan(0, 5, 0);
+        public TimeSpan TimeOneBarForOneMinutes = new TimeSpan(0, 1, 0);
+
+        private int count;
+        private Stopwatch allStopwatch;
+        private Stopwatch modelStopwatch;
+        private Stopwatch oneModelStopwatch;
 
         public void Init()
         {
             if(DeltaModelSpan != -1) DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
             if(DeltaPositionSpan != -1) DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
 
-            var startTimeString = StartTime.Value.ToString();
+            var StartTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(startTimeString.Substring(0, 2)), 
-                Convert.ToInt32(startTimeString.Substring(2, 2)), 
-                Convert.ToInt32(startTimeString.Substring(4, 2)));
+                Convert.ToInt32(StartTimeString.Substring(0, 2)), 
+                Convert.ToInt32(StartTimeString.Substring(2, 2)), 
+                Convert.ToInt32(StartTimeString.Substring(4, 2)));
 
-            var stopTimeString = StopTime.Value.ToString();
+            var StopTimeString = StopTime.Value.ToString();
             StopTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(stopTimeString.Substring(0, 2)), 
-                Convert.ToInt32(stopTimeString.Substring(2, 2)), 
-                Convert.ToInt32(stopTimeString.Substring(4, 2)));
-
-            IsReverse = ReverseModel.Value == 0;
+                Convert.ToInt32(StopTimeString.Substring(0, 2)), 
+                Convert.ToInt32(StopTimeString.Substring(2, 2)), 
+                Convert.ToInt32(StopTimeString.Substring(4, 2)));
         }
         
         public void BaseExecute(IContext ctx, ISecurity source)
-        {
+        {          
+            allStopwatch = new Stopwatch();
+            modelStopwatch = new Stopwatch();
+            oneModelStopwatch = new Stopwatch();
+            allStopwatch.Start();
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -138,6 +149,12 @@ namespace Simple
             var sellPain = ctx.CreatePane("SellSignal", 15, false);
             sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
                 PaneSides.RIGHT);
+            
+            allStopwatch.Stop();
+            ctx.Log("Время выполнения: " + (decimal)allStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Время поиска моделей: " + (decimal)modelStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Время последнего поиска: " + (decimal)oneModelStopwatch.ElapsedMilliseconds/1000 + "sec");
+            ctx.Log("Расчет модели был произведен: " + count + "раз");
         }
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
@@ -157,8 +174,8 @@ namespace Simple
         {
             if (source.Bars[actualBar].Date.TimeOfDay < GetTimeBeginBar()) return;
             
-            // Если время более установленого лимита - закрыть все активные позиции и не торговать
-            if (source.Bars[actualBar].Date.TimeOfDay >= StopTimeTimeSpan)
+            // Если время 18:40 или более - закрыть все активные позиции и не торговать
+            if (source.Bars[actualBar].Date.TimeOfDay >= TimeCloseAllPosition)
             {
                 if (source.Positions.ActivePositionCount > 0)
                 {
@@ -180,12 +197,16 @@ namespace Simple
                         
             if (IsClosedBar(source.Bars[actualBar]))
             {
+                count++;
+                modelStopwatch.Start();
+                oneModelStopwatch.Reset();
+                oneModelStopwatch.Start();
                 var dateActualBar = source.Bars[actualBar].Date;
                 var indexBeginDayBar = GetIndexBeginDayBar(compressSource, dateActualBar);
                 var indexCompressBar = GetIndexCompressBar(compressSource, dateActualBar, indexBeginDayBar);
 
                 // Поиск моделей, информация о моделях пишется в "StoreObject"
-                // Модели ищутся только на открытии бара, а валидируются каждый установленный интервал
+                // Модели ищутся только на открытии бара, а валидируются каждые 5 секунд
 
                 var highPoints = compressSource.Bars
                     .Skip(indexBeginDayBar)
@@ -197,8 +218,10 @@ namespace Simple
                     .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
                     .ToList();
                 
-                SearchLongModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal,sellSignal, highPoints, lowPoints);
-                SearchShortModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, buySignal, highPoints, lowPoints);
+                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
+                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
+                modelStopwatch.Stop();
+                oneModelStopwatch.Stop();
             }
 
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
@@ -274,18 +297,17 @@ namespace Simple
                 "sell_" + model.GetNamePosition);
         }
 
-        private void SearchLongModel(
+        private void SearchBuyModel(
             IContext ctx, 
             ISecurity compressSource, 
             int indexCompressBar, 
             int indexBeginDayBar,
             int actualBar, 
             IList<double> buySignal, 
-            IList<double> sellSignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
-            var models = new List<TradingModel>();
+            var modelBuyList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -334,11 +356,8 @@ namespace Simple
                        .Take(pointC.Index - pointB.Index - 1)
                        .Select(x => x.Value)
                        .Max() >= pointB.Value - DistanceFromCrossing) continue;
-
-                var model = !IsReverse
-                    ? GetNewBuyTradingModel(pointB.Value, bc)
-                    : GetNewSellTradingModel(pointB.Value, bc);
                 
+                var model = GetNewBuyTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 { 
@@ -355,33 +374,24 @@ namespace Simple
                     compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
                     continue;
 
-                models.Add(model);
-                if (IsReverse)
-                {
-                    sellSignal[actualBar] = 1;
-                }
-                else
-                {
-                    buySignal[actualBar] = 1;
-                }
+                modelBuyList.Add(model);
+                buySignal[actualBar] = 1;
             }
 
-            var key = !IsReverse ? "BuyModel" : "SellModel";
-            ctx.StoreObject(key, models);
+            ctx.StoreObject("BuyModel", modelBuyList);
         }
 
-        private void SearchShortModel(
+        private void SearchSellModel(
             IContext ctx, 
             ISecurity compressSource, 
             int indexCompressBar, 
             int indexBeginDayBar, 
             int actualBar, 
             IList<double> sellSignal,
-            IList<double> buySignal,
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
-            var models = new List<TradingModel>();
+            var modelSellList = new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -432,10 +442,7 @@ namespace Simple
                        .Select(x => x.Value)
                        .Min() <= pointB.Value + DistanceFromCrossing) continue;
                 
-                var model = !IsReverse
-                    ? GetNewSellTradingModel(pointB.Value, bc)
-                    : GetNewBuyTradingModel(pointB.Value, bc);
-                
+                var model = GetNewSellTradingModel(pointB.Value, bc);
                 // Проверяем, не отработала ли уже модель
                 if (indexCompressBar != pointC.Index)
                 {
@@ -452,19 +459,11 @@ namespace Simple
                     compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
                     continue;
 
-                models.Add(model);
-                if (IsReverse)
-                {
-                    buySignal[actualBar] = 1;
-                }
-                else
-                {
-                    sellSignal[actualBar] = 1;
-                }
+                modelSellList.Add(model);
+                sellSignal[actualBar] = 1;
             }
-    
-            var key = !IsReverse ? "SellModel" : "BuyModel";
-            ctx.StoreObject(key, models);
+
+            ctx.StoreObject("SellModel", modelSellList);
         }
 
         private List<TradingModel> ValidateBuyModel(
@@ -652,12 +651,12 @@ namespace Simple
         
         protected TimeSpan GetTimeBeginBar()
         {
-            return new TimeSpan(10, DataInterval - 1, 55);
+            return DataInterval == 5 ? TimeBeginBarForFiveMinutes : TimeBeginBarForOneMinutes;
         }
         
         protected TimeSpan GetTimeOneBar()
         {
-            return new TimeSpan(10, DataInterval, 0);
+            return DataInterval == 5 ? TimeOneBarForFiveMinutes : TimeOneBarForOneMinutes;
         }
         
         public static PointModel MinByValue(PointModel[] source)
