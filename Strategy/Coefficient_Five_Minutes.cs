@@ -25,8 +25,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value - CalculatePrice(bc, MultyplayDelta),
-                StopPrice = value - CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = value + CalculatePrice(bc, MultyplayProfit)
+                StopPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayStop) : value - CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayProfit) : value + CalculatePrice(bc, MultyplayProfit)
             };
         }
 
@@ -36,8 +36,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value + CalculatePrice(bc, MultyplayDelta),
-                StopPrice = value + CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = value - CalculatePrice(bc, MultyplayProfit)
+                StopPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayStop) : value + CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayProfit) : value - CalculatePrice(bc, MultyplayProfit)
             };
         }
 

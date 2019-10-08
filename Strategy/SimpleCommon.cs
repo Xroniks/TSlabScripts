@@ -238,7 +238,7 @@ namespace Simple
                 {
                     foreach (var model in buyList)
                     {
-                        CreateBuyOrder(source, actualBar, model, indicators);
+                        CreateLongOrder(source, actualBar, model, indicators);
                     }
                 }
 
@@ -253,7 +253,7 @@ namespace Simple
                 {
                     foreach (var model in sellList)
                     {
-                        CreateSellOrder(source, actualBar, model, indicators);
+                        CreateShortOrder(source, actualBar, model, indicators);
                     }
                 }
 
@@ -261,7 +261,7 @@ namespace Simple
             }
         }
 
-        public virtual void CreateBuyOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
             if (IsReverseMode)
             {
@@ -281,7 +281,7 @@ namespace Simple
             }
         }
 
-        public virtual void CreateSellOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        public virtual void CreateShortOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
             if (IsReverseMode)
             {
@@ -547,35 +547,35 @@ namespace Simple
                 switch (arr[0])
                 {
                     case "buy":
-                        SetBuyProfit(actualBar, position, arr, indicators);
+                        SetLongProfit(actualBar, position, arr, indicators);
                         SetLongStop(actualBar, position, arr, indicators);
                         break;
                     case "sell":
-                        SetSellProfit(actualBar, position, arr, indicators);
+                        SetShortProfit(actualBar, position, arr, indicators);
                         SetShortStop(actualBar, position, arr, indicators);
                         break;
                 }
             }
         }
 
-        protected virtual void SetBuyProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
-        {
-            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
-        }
-        
         protected virtual void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
         }
         
-        protected virtual void SetSellProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
-        {
-            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
-        }
-
         protected virtual void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
             position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
+        }
+        
+        protected virtual void SetLongProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        {
+            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
+        }
+        
+        protected virtual void SetShortProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
+        {
+            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
 
         private void CloseAllPosition(ISecurity source, int actualBar)
