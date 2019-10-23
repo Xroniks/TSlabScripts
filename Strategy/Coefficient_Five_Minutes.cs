@@ -24,7 +24,7 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - CalculatePrice(bc, MultyplayDelta),
+                EnterPrice = value - CalculatePrice(bc, MultyplayDelta) - ExtraDelta,
                 StopPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayStop) : value - CalculatePrice(bc, MultyplayStop),
                 ProfitPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayProfit) : value + CalculatePrice(bc, MultyplayProfit)
             };
@@ -35,7 +35,7 @@ namespace TSLabScripts
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + CalculatePrice(bc, MultyplayDelta),
+                EnterPrice = value + CalculatePrice(bc, MultyplayDelta) + ExtraDelta,
                 StopPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayStop) : value + CalculatePrice(bc, MultyplayStop),
                 ProfitPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayProfit) : value - CalculatePrice(bc, MultyplayProfit)
             };

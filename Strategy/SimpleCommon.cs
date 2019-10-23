@@ -70,6 +70,7 @@ namespace Simple
         
         public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
         public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
+        public OptimProperty ExtraDelta = new OptimProperty(0, -1000, 1000, 0.01);
         
         public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
@@ -639,7 +640,7 @@ namespace Simple
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - ScopeDelta,
+                EnterPrice = value - ScopeDelta - ExtraDelta,
                 StopPrice = IsReverseMode ? value + ScopeStop : value - ScopeStop,
                 ProfitPrice = IsReverseMode ? value - ScopeProfit : value + ScopeProfit
             };
@@ -650,7 +651,7 @@ namespace Simple
             return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + ScopeDelta,
+                EnterPrice = value + ScopeDelta + ExtraDelta,
                 StopPrice = IsReverseMode ? value - ScopeStop : value + ScopeStop,
                 ProfitPrice = IsReverseMode ? value + ScopeProfit : value - ScopeProfit
             };
