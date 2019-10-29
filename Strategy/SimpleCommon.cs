@@ -286,7 +286,8 @@ namespace Simple
         {
             if (IsReverseMode)
             {
-                source.Positions.SellIfGreater(actualBar + 1,
+                source.Positions.SellIfGreater(
+                    actualBar + 1,
                     Value, model.EnterPrice,
                     Slippage,
                     "sell_" + model.GetNamePosition);
@@ -659,16 +660,18 @@ namespace Simple
         
         protected TimeSpan GetTimeBeginBar()
         {
-            return DataInterval == 5 
-                ? new TimeSpan(10, 04, 55) 
-                : new TimeSpan(10, 0, 55);
+            return new TimeSpan(10, DataInterval - 1, 55);
+//            return DataInterval == 5 
+//                ? new TimeSpan(10, 04, 55) 
+//                : new TimeSpan(10, 0, 55);
         }
         
         protected TimeSpan GetTimeOneBar()
         {
-            return DataInterval == 5 
-                ? new TimeSpan(0, 5, 0) 
-                : new TimeSpan(0, 1, 0);
+            return new TimeSpan(0, DataInterval, 0);
+//            return DataInterval == 5 
+//                ? new TimeSpan(0, 5, 0) 
+//                : new TimeSpan(0, 1, 0);
         }
         
         public static PointModel MinByValue(PointModel[] source)
