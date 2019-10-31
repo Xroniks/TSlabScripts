@@ -47,7 +47,8 @@ using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
 namespace Simple
-{public class SimpleCommon
+{
+    public class Strategy : IExternalScript
     {
         public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
@@ -73,6 +74,21 @@ namespace Simple
         public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
         
+        public OptimProperty EnableParabolic = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
+        public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
+        public OptimProperty AccelerationStep = new OptimProperty(0.02, 0.01, 1, 0.01);
+        
+        public OptimProperty EnableCoefficient = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty MultyplayDelta = new OptimProperty(1.03, 1.0, 2.0, double.MaxValue);
+        public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
+        public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
+        public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
+        public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
+        
+        public OptimProperty EnableEMA = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty PeriodEMA = new OptimProperty(34, 1, 1000, 0.01);
+        
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
         public TimeSpan DeltaPositionTimeSpan;
@@ -80,6 +96,9 @@ namespace Simple
         public TimeSpan StopTimeTimeSpan;
         public Boolean IsReverseMode;
         public Boolean IsHourlyMode;
+        public Boolean IsCoefficient;
+        public Boolean IsEMA;
+        public Boolean IsParabolic;
 
         public IContext Logger; 
 
@@ -105,9 +124,12 @@ namespace Simple
 
             IsReverseMode = ReverseMode > 0;
             IsHourlyMode = BeforeHourlyBar != -1 || AfterHourlyBar != -1;
+            IsCoefficient = EnableCoefficient > 0;
+            IsEMA = EnableEMA > 0;
+            IsParabolic = EnableParabolic > 0;
         }
         
-        public void BaseExecute(IContext ctx, ISecurity source)
+        public void Execute(IContext ctx, ISecurity source)
         {
             Logger = ctx;
             
@@ -155,8 +177,37 @@ namespace Simple
 
         protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
         {
-            // Добавлять индикаторы не требуется
-            return new Indicators();
+            var indicators = new Indicators();
+
+            if (EnableParabolic == 1)
+            {
+                var parabolic = ctx.GetData("Parabolic", new[] {""}, () => new ParabolicSAR
+                {
+                    AccelerationMax = AccelerationMax,
+                    AccelerationStart = AccelerationStart,
+                    AccelerationStep = AccelerationStep
+                }.Execute(source));
+                var nameParabolic = "Parabolic (" + AccelerationStart.Value + "," + AccelerationStep.Value + "," +
+                                    AccelerationMax.Value + ")";
+                pain.AddList(nameParabolic, parabolic, ListStyles.LINE, new Color(255, 0, 0), LineStyles.SOLID,
+                    PaneSides.RIGHT);
+
+                indicators.Parabolic = parabolic;
+            }
+
+            if (EnableEMA == 1)
+            {
+                var ema = ctx.GetData("EMA", new[] {""}, () => new EMA
+                {
+                    Period = PeriodEMA
+                }.Execute(source.ClosePrices));
+                var nameEma = "EMA (" + PeriodEMA + ")";
+                pain.AddList(nameEma, ema, ListStyles.LINE, new Color(0, 255, 0), LineStyles.SOLID, PaneSides.RIGHT);
+
+                indicators.EMA = ema;
+            }
+
+            return indicators;
         }
 
         private void Trading(IContext ctx,
@@ -271,6 +322,33 @@ namespace Simple
 
         public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
+            if (IsEMA)
+            {
+                var emaValue = indicators.EMA[actualBar];
+                if (emaValue > model.EnterPrice)
+                {
+                    return;
+                }
+            }
+            
+            if (IsParabolic)
+            {
+                var parabolicValue = indicators.Parabolic[actualBar];
+                if (parabolicValue > model.EnterPrice)
+                {
+                    return;
+                }
+            }
+            
+            if (IsReverseMode)
+            {
+                source.Positions.SellAtPrice(
+                    actualBar + 1,
+                    Value, model.EnterPrice,
+                    "sell_" + model.GetNamePosition + "_reverse");
+                return;
+            }
+            
             source.Positions.BuyIfGreater(
                     actualBar + 1,
                     Value, model.EnterPrice,
@@ -280,6 +358,33 @@ namespace Simple
 
         public virtual void CreateShortOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
+            if (IsEMA)
+            {
+                var emaValue = indicators.EMA[actualBar];
+                if (emaValue < model.EnterPrice)
+                {
+                    return;
+                }
+            }
+            
+            if (IsParabolic)
+            {
+                var parabolicValue = indicators.Parabolic[actualBar];
+                if (parabolicValue < model.EnterPrice)
+                {
+                    return;
+                }
+            }
+
+            if (IsReverseMode)
+            {
+                source.Positions.BuyAtPrice(
+                    actualBar + 1,
+                    Value, model.EnterPrice,
+                    "buy_" + model.GetNamePosition + "_reverse");
+                return;
+            }
+            
             source.Positions.SellIfLess(
                     actualBar + 1, 
                     Value, model.EnterPrice, 
@@ -547,22 +652,50 @@ namespace Simple
 
         protected virtual void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
+            var prises = new List<double>{ Convert.ToDouble(arr[3]) };
+
+            if (!IsReverseMode && IsParabolic)
+            {
+                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
+            }
+
+            position.CloseAtStop(actualBar + 1, prises.Max(), Convert.ToDouble(Slippage), "closeStop");
         }
         
         protected virtual void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtStop(actualBar + 1, Convert.ToDouble(arr[3]), Convert.ToDouble(Slippage), "closeStop");
+            var prises = new List<double>{ Convert.ToDouble(arr[3]) };
+
+            if (!IsReverseMode && IsParabolic)
+            {
+                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
+            }
+
+            position.CloseAtStop(actualBar + 1, prises.Min(), Convert.ToDouble(Slippage), "closeStop");
         }
         
         protected virtual void SetLongProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
+            var prises = new List<double>{ Convert.ToDouble(arr[4]) };
+            
+            if (IsReverseMode && IsParabolic)
+            {
+                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
+            }
+            
+            position.CloseAtProfit(actualBar + 1, prises.Min(), "closeProfit");
         }
         
         protected virtual void SetShortProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
+            var prises = new List<double>{ Convert.ToDouble(arr[4]) };
+            
+            if (IsReverseMode && IsParabolic)
+            {
+                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
+            }
+            
+            position.CloseAtProfit(actualBar + 1, prises.Max(), "closeProfit");
         }
 
         private void CloseAllPosition(ISecurity source, int actualBar)
@@ -623,24 +756,55 @@ namespace Simple
         
         protected virtual TradingModel GetNewLongTradingModel(double value, double bc)
         {
-            return new TradingModel
+            var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
+            var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
+            var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
+
+            var model = new TradingModel
             {
                 Value = value,
-                EnterPrice = value - ScopeDelta - ExtraDelta,
-                StopPrice = value - ScopeStop,
-                ProfitPrice = value + ScopeProfit
+                EnterPrice = value - enterPriceDelta - ExtraDelta
             };
+            
+            if (IsReverseMode)
+            {
+                model.StopPrice = value + stopPriceDelta;
+                model.ProfitPrice = value - profitPriceDelta;
+            }
+            else
+            {
+                model.StopPrice = value - stopPriceDelta;
+                model.ProfitPrice = value + profitPriceDelta;
+            }
+
+            return model;
         }
 
         protected virtual TradingModel GetNewShortTradingModel(double value, double bc)
         {
-            return new TradingModel
+            var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
+            var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
+            var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
+
+            var model = new TradingModel
             {
                 Value = value,
-                EnterPrice = value + ScopeDelta + ExtraDelta,
-                StopPrice = value + ScopeStop,
-                ProfitPrice = value - ScopeProfit
+                EnterPrice = value + enterPriceDelta + ExtraDelta
             };
+            
+            if (IsReverseMode)
+            {
+                model.StopPrice = value - stopPriceDelta;
+                model.ProfitPrice = value + profitPriceDelta;
+            }
+            else
+            {
+
+                model.StopPrice = value + stopPriceDelta;
+                model.ProfitPrice = value - profitPriceDelta;
+            }
+
+            return model;
         }
         
         protected TimeSpan GetTimeBeginBar()
@@ -651,6 +815,11 @@ namespace Simple
         protected TimeSpan GetTimeOneBar()
         {
             return new TimeSpan(0, DataInterval, 0);
+        }
+        
+        protected double CalculatePrice(double bc, double baseLogarithm)
+        {
+            return Math.Round(Math.Log(bc / MultyplayDivider, baseLogarithm) / PriceStep, 0) * PriceStep;
         }
         
         public static PointModel MinByValue(PointModel[] source)

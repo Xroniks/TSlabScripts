@@ -47,13 +47,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Coefficient_Five_Minutes.cs" />
-    <Compile Include="Coefficient_Five_Minutes_ParabolicSAR.cs" />
-    <Compile Include="Coefficient_Five_Minutes_ParabolicSAR_EMA.cs" />
-    <Compile Include="SimpleCommon.cs" />
+    <Compile Include="Strategy.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Simple_Five_Minutes.cs" />
-    <Compile Include="Simple_Five_Minutes_ParabolicSAR.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
