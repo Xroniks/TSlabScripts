@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using Simple;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -29,8 +29,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value - CalculatePrice(bc, MultyplayDelta) - ExtraDelta,
-                StopPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayStop) : value - CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayProfit) : value + CalculatePrice(bc, MultyplayProfit)
+                StopPrice = value - CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value + CalculatePrice(bc, MultyplayProfit)
             };
         }
 
@@ -40,8 +40,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value + CalculatePrice(bc, MultyplayDelta) + ExtraDelta,
-                StopPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayStop) : value + CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayProfit) : value - CalculatePrice(bc, MultyplayProfit)
+                StopPrice = value + CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value - CalculatePrice(bc, MultyplayProfit)
             };
         }
 
@@ -66,12 +66,6 @@ namespace TSLabScripts
 
         protected override void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                base.SetShortStop(actualBar, position, arr, indicators);
-                return;
-            }
-            
             var parabolicStop = Convert.ToDouble(indicators.Parabolic[actualBar]);
             var modelStop = Convert.ToDouble(arr[3]);
             position.CloseAtStop(actualBar + 1, Math.Min(parabolicStop, modelStop), Slippage, "closeStop");
@@ -79,12 +73,6 @@ namespace TSLabScripts
 
         protected override void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                base.SetLongStop(actualBar, position, arr, indicators);
-                return;
-            }
-            
             var parabolicStop = Convert.ToDouble(indicators.Parabolic[actualBar]);
             var modelStop = Convert.ToDouble(arr[3]);
             position.CloseAtStop(actualBar + 1, Math.Max(parabolicStop, modelStop), Slippage, "closeStop");
@@ -92,25 +80,11 @@ namespace TSLabScripts
         
         protected override void SetLongProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-                position.CloseAtProfit(actualBar + 1, value, "closeProfit");
-                return;
-            }
-            
             base.SetLongProfit(actualBar, position, arr, indicators);
         }
         
         protected override void SetShortProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-                position.CloseAtProfit(actualBar + 1, value, "closeProfit");
-                return;
-            }
-            
             base.SetShortProfit(actualBar, position, arr, indicators);
         }
         
@@ -118,7 +92,7 @@ namespace TSLabScripts
         {
             var parabolicValue = indicators.Parabolic[actualBar];
 
-            var isCreate = IsReverseMode ? parabolicValue < model.EnterPrice : parabolicValue > model.EnterPrice;
+            var isCreate = parabolicValue > model.EnterPrice;
             if (isCreate)
             {
                 base.CreateShortOrder(source, actualBar, model, indicators);
@@ -129,7 +103,7 @@ namespace TSLabScripts
         {
             var parabolicValue = indicators.Parabolic[actualBar];
 
-            var isCreate = IsReverseMode ? model.EnterPrice < parabolicValue : model.EnterPrice > parabolicValue;
+            var isCreate = model.EnterPrice > parabolicValue;
             if (isCreate)
             {
                 base.CreateLongOrder(source, actualBar, model, indicators);

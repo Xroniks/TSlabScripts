@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using Simple;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -33,49 +33,23 @@ namespace TSLabScripts
 
         protected override void SetShortStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                base.SetShortStop(actualBar, position, arr, indicators);
-                return;
-            }
-            
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
 
         protected override void SetLongStop(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                base.SetLongStop(actualBar, position, arr, indicators);
-                return;
-            }
-            
             var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
             position.CloseAtStop(actualBar + 1, value, Slippage, "closeStop");
         }
         
         protected override void SetLongProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-                position.CloseAtProfit(actualBar + 1, value, "closeProfit");
-                return;
-            }
-            
             base.SetLongProfit(actualBar, position, arr, indicators);
         }
         
         protected override void SetShortProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                var value = Convert.ToDouble(indicators.Parabolic[actualBar]);
-                position.CloseAtProfit(actualBar + 1, value, "closeProfit");
-                return;
-            }
-            
             base.SetShortProfit(actualBar, position, arr, indicators);
         }
         
@@ -83,7 +57,7 @@ namespace TSLabScripts
         {
             var parabolicValue = indicators.Parabolic[actualBar];
 
-            var isCreate = IsReverseMode ? parabolicValue < model.EnterPrice : parabolicValue > model.EnterPrice;
+            var isCreate = parabolicValue > model.EnterPrice;
             if (isCreate)
             {
                 base.CreateShortOrder(source, actualBar, model, indicators);
@@ -94,7 +68,7 @@ namespace TSLabScripts
         {
             var parabolicValue = indicators.Parabolic[actualBar];
 
-            var isCreate = IsReverseMode ? model.EnterPrice < parabolicValue : model.EnterPrice > parabolicValue;
+            var isCreate = model.EnterPrice > parabolicValue;
             if (isCreate)
             {
                 base.CreateLongOrder(source, actualBar, model, indicators);

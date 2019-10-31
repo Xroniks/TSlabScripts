@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using Simple;
 using TSLab.Script;
 using TSLab.Script.Handlers;
@@ -25,8 +25,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value - CalculatePrice(bc, MultyplayDelta) - ExtraDelta,
-                StopPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayStop) : value - CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayProfit) : value + CalculatePrice(bc, MultyplayProfit)
+                StopPrice = value - CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value + CalculatePrice(bc, MultyplayProfit)
             };
         }
 
@@ -36,8 +36,8 @@ namespace TSLabScripts
             {
                 Value = value,
                 EnterPrice = value + CalculatePrice(bc, MultyplayDelta) + ExtraDelta,
-                StopPrice = IsReverseMode ? value - CalculatePrice(bc, MultyplayStop) : value + CalculatePrice(bc, MultyplayStop),
-                ProfitPrice = IsReverseMode ? value + CalculatePrice(bc, MultyplayProfit) : value - CalculatePrice(bc, MultyplayProfit)
+                StopPrice = value + CalculatePrice(bc, MultyplayStop),
+                ProfitPrice = value - CalculatePrice(bc, MultyplayProfit)
             };
         }
 

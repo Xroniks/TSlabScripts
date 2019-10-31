@@ -40,7 +40,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
@@ -48,10 +47,9 @@ using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
 namespace Simple
-{
-    public class SimpleCommon
-    {       
-        public OptimProperty MultyPosition = new OptimProperty(1, 0, 1, 1);
+{public class SimpleCommon
+    {
+        public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
         public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
         
@@ -83,6 +81,8 @@ namespace Simple
         public Boolean IsReverseMode;
         public Boolean IsHourlyMode;
 
+        public IContext Logger; 
+
         public string ShortModelKey = "ShortModel";
         public string LongModelKey = "LongModel";
 
@@ -109,6 +109,8 @@ namespace Simple
         
         public void BaseExecute(IContext ctx, ISecurity source)
         {
+            Logger = ctx;
+            
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -239,6 +241,11 @@ namespace Simple
                 {
                     foreach (var model in buyList)
                     {
+                        if (source.Bars[actualBar].Date.TimeOfDay >= new TimeSpan(12, 8, 55) && source.Bars[actualBar].Date.TimeOfDay <= new TimeSpan(12, 9, 0))
+                        {
+                            Logger.Log("date: " + source.Bars[actualBar].Date + " " + model.Value);
+                        }
+                        
                         CreateLongOrder(source, actualBar, model, indicators);
                     }
                 }
@@ -264,42 +271,20 @@ namespace Simple
 
         public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                source.Positions.BuyIfLess(
+            source.Positions.BuyIfGreater(
                     actualBar + 1,
                     Value, model.EnterPrice,
                     Slippage,
                     "buy_" + model.GetNamePosition);
-            }
-            else
-            {
-                source.Positions.BuyIfGreater(
-                    actualBar + 1,
-                    Value, model.EnterPrice,
-                    Slippage,
-                    "buy_" + model.GetNamePosition);
-            }
         }
 
         public virtual void CreateShortOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            if (IsReverseMode)
-            {
-                source.Positions.SellIfGreater(
-                    actualBar + 1,
-                    Value, model.EnterPrice,
-                    Slippage,
-                    "sell_" + model.GetNamePosition);
-            }
-            else
-            {
-                source.Positions.SellIfLess(
+            source.Positions.SellIfLess(
                     actualBar + 1, 
                     Value, model.EnterPrice, 
                     Slippage, 
                     "sell_" + model.GetNamePosition);
-            }
         }
 
         private void SearchBuyModel(
@@ -385,7 +370,7 @@ namespace Simple
                 buySignal[actualBar] = 1;
             }
 
-            ctx.StoreObject(IsReverseMode ? ShortModelKey : LongModelKey, models);
+            ctx.StoreObject(LongModelKey, models);
         }
 
         private void SearchSellModel(
@@ -469,10 +454,10 @@ namespace Simple
                     continue;
 
                 modelSellList.Add(model);
-                //sellSignal[actualBar] = 1;
+                sellSignal[actualBar] = 1;
             }
 
-            ctx.StoreObject(IsReverseMode ? LongModelKey : ShortModelKey, modelSellList);
+            ctx.StoreObject(ShortModelKey, modelSellList);
         }
 
         private List<TradingModel> ValidateBuyModel(
@@ -642,8 +627,8 @@ namespace Simple
             {
                 Value = value,
                 EnterPrice = value - ScopeDelta - ExtraDelta,
-                StopPrice = IsReverseMode ? value + ScopeStop : value - ScopeStop,
-                ProfitPrice = IsReverseMode ? value - ScopeProfit : value + ScopeProfit
+                StopPrice = value - ScopeStop,
+                ProfitPrice = value + ScopeProfit
             };
         }
 
@@ -653,25 +638,19 @@ namespace Simple
             {
                 Value = value,
                 EnterPrice = value + ScopeDelta + ExtraDelta,
-                StopPrice = IsReverseMode ? value - ScopeStop : value + ScopeStop,
-                ProfitPrice = IsReverseMode ? value + ScopeProfit : value - ScopeProfit
+                StopPrice = value + ScopeStop,
+                ProfitPrice = value - ScopeProfit
             };
         }
         
         protected TimeSpan GetTimeBeginBar()
         {
             return new TimeSpan(10, DataInterval - 1, 55);
-//            return DataInterval == 5 
-//                ? new TimeSpan(10, 04, 55) 
-//                : new TimeSpan(10, 0, 55);
         }
         
         protected TimeSpan GetTimeOneBar()
         {
             return new TimeSpan(0, DataInterval, 0);
-//            return DataInterval == 5 
-//                ? new TimeSpan(0, 5, 0) 
-//                : new TimeSpan(0, 1, 0);
         }
         
         public static PointModel MinByValue(PointModel[] source)
