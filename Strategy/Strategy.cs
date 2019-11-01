@@ -66,6 +66,7 @@ namespace Simple
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
         public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
+        public OptimProperty CountBarsBetweenB_С = new OptimProperty(0, 0, 10000, 1);
         
         public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
         public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
@@ -439,6 +440,9 @@ namespace Simple
                 
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
+                
+                // Точки B и C должны быть на определенном расстоянии
+                if(CountBarsBetweenB_С > 0 && pointC.Index - pointB.Index > CountBarsBetweenB_С) continue;
 
                 // Проверям размер модели B-C
                 var bc = pointB.Value - pointC.Value;
@@ -527,6 +531,9 @@ namespace Simple
                 // Точки B и C не могут быть на одном баре
                 if (pointB.Index == pointC.Index) continue;
 
+                // Точки B и C должны быть на определенном расстоянии
+                if(CountBarsBetweenB_С > 0 && pointC.Index - pointB.Index > CountBarsBetweenB_С) continue;
+                
                 // Проверям размер модели B-C
                 var bc = pointC.Value - pointB.Value;
                 if (bc <= LengthSegmentBC || realPointA.Value - pointC.Value < 0) continue;
