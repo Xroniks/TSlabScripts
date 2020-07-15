@@ -9,7 +9,7 @@
  *  - цена откатилась на значение больше чем "ScopeStop" (позиция закрывается в убыток)
  *  - цена двинулась в ожидаемом направлении на значение более чем "ScopeProfit" (позиция закрывается в прибыль)
  *  - цена до конца торгового дня остается в коридоре между "ScopeStop" и "ScopeProfit", позиция закрывается по времени
- *     (в 18:40). Можно ускорить выход, воспользовавшись настройкой "DeltaPositionSpan"
+ *     (в 18:40).
  *
  * Для настройки стратегии используются параметры:
  *  - Value, объем позиции, используется для выставления ордеров
@@ -56,10 +56,7 @@ namespace Simple
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
-        
-        //public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
-        //public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
-        
+
         public OptimProperty EnableParabolic = new OptimProperty(0, 0, 1, 1);
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
@@ -71,16 +68,12 @@ namespace Simple
         public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
         public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
-        
-        //public OptimProperty EnableEMA = new OptimProperty(0, 0, 1, 1);
-        //public OptimProperty PeriodEMA = new OptimProperty(34, 1, 1000, 0.01);
-        
+
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
         public Boolean IsReverseMode;
         public Boolean IsCoefficient;
-        public Boolean IsEMA;
         public Boolean IsParabolic;
 
         public IContext Logger; 
@@ -104,7 +97,6 @@ namespace Simple
 
             IsReverseMode = ReverseMode > 0;
             IsCoefficient = EnableCoefficient > 0;
-            IsEMA = EnableEMA > 0;
             IsParabolic = EnableParabolic > 0;
         }
         
@@ -166,18 +158,6 @@ namespace Simple
                     PaneSides.RIGHT);
 
                 indicators.Parabolic = parabolic;
-            }
-
-            if (EnableEMA == 1)
-            {
-                var ema = ctx.GetData("EMA", new[] {""}, () => new EMA
-                {
-                    Period = PeriodEMA
-                }.Execute(source.ClosePrices));
-                var nameEma = "EMA (" + PeriodEMA + ")";
-                pain.AddList(nameEma, ema, ListStyles.LINE, new Color(0, 255, 0), LineStyles.SOLID, PaneSides.RIGHT);
-
-                indicators.EMA = ema;
             }
 
             return indicators;
@@ -290,15 +270,6 @@ namespace Simple
 
         public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            if (IsEMA)
-            {
-                var emaValue = indicators.EMA[actualBar];
-                if (emaValue > model.EnterPrice)
-                {
-                    return;
-                }
-            }
-            
             if (IsParabolic)
             {
                 var parabolicValue = indicators.Parabolic[actualBar];
@@ -326,15 +297,6 @@ namespace Simple
 
         public virtual void CreateShortOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
         {
-            if (IsEMA)
-            {
-                var emaValue = indicators.EMA[actualBar];
-                if (emaValue < model.EnterPrice)
-                {
-                    return;
-                }
-            }
-            
             if (IsParabolic)
             {
                 var parabolicValue = indicators.Parabolic[actualBar];
@@ -766,7 +728,5 @@ namespace Simple
     public class Indicators
     {
         public IList<double> Parabolic { get; set; }
-        
-        public IList<double> EMA { get; set; }
     }
 }
