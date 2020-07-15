@@ -41,10 +41,12 @@ namespace Simple
 {
     public class Strategy : IExternalScript
     {
-        public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
-        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
         
+        public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
+
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
         
@@ -67,7 +69,6 @@ namespace Simple
         public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
-        public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
 
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan StartTimeTimeSpan;
