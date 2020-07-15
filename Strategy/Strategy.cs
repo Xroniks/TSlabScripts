@@ -20,10 +20,6 @@
  *
  *  - LengthSegmentAB, ограничивает разницу между уровнями цен точек А и В. Все модели у которых разница будет БОЛЬШЕ установленной, будут пропускаться
  *  - LengthSegmentBC, ограничивает разницу между уровнями цен точек В и С. Все модели у которых разница будет МЕНЬШЕ установленной, будут пропускаться
- *  - DistanceFromCrossing, ограничивает насколько близко может приближаться цена на отрезках АВ и ВС к уровню цены точки В. Значение -1, отключает ограничение
- *
- *  - DeltaModelSpan, ограничивает время ожидания ВХОДА в позицию. При значении "-1" ограничение не работает. Ограничение задается в минутах.
- *  - DeltaPositionSpan, ограничивает время ожидания ВЫХОДА из позиции. При значении "-1" ограничение не работает. Ограничение задается в минутах.
  *
  *  - MultyPosition, при 0 - не выставляет ордера на вход если есть активная позиция. 1 - включено, 0 - выключено
  *  - DataInterval, таймфрейм для формирования моделей. 1 или 5 минут (с иными вариантами не тестировалось)
@@ -60,7 +56,6 @@ namespace Simple
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
-        //public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
         
         //public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
         //public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
@@ -396,15 +391,7 @@ namespace Simple
                 // Проверм размер фигуры A-B
                 var ab = pointB.Value - realPointA.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-                
-                // Проверяем приближение HighPrices на отрезке АВ к уровню точки В
-                if(DistanceFromCrossing != -1
-                   && pointB.Index - realPointA.Index - 1 > 0
-                   && MaxByValue(highPoints
-                       .Skip(realPointA.Index + 1 - indexBeginDayBar)
-                       .Take(pointB.Index - realPointA.Index - 1)
-                       .ToArray()).Value >= pointB.Value - DistanceFromCrossing) continue;
-                
+
                 var pointC = MinByValue(lowPoints
                     .Skip(pointB.Index - indexBeginDayBar)
                     .Take(indexCompressBar - pointB.Index + 1)
@@ -416,16 +403,7 @@ namespace Simple
                 // Проверям размер модели B-C
                 var bc = pointB.Value - pointC.Value;
                 if (bc <= LengthSegmentBC || pointC.Value - realPointA.Value < 0) continue;
-                
-                // Проверяем приближение HighPrices на отрезке АС к уровню точки В
-                if(DistanceFromCrossing != -1 
-                   && pointC.Index - pointB.Index - 1 > 0
-                   && highPoints
-                       .Skip(pointB.Index + 1 - indexBeginDayBar)
-                       .Take(pointC.Index - pointB.Index - 1)
-                       .Select(x => x.Value)
-                       .Max() >= pointB.Value - DistanceFromCrossing) continue;
-                
+
                 var model = GetNewLongTradingModel(pointB.Value, bc);
                 
                 // Проверяем, не отработала ли уже модель
@@ -477,15 +455,6 @@ namespace Simple
                 // Проверм размер фигуры A-B
                 var ab = realPointA.Value - pointB.Value;
                 if (ab <= LengthSegmentBC || ab >= LengthSegmentAB) continue;
-                
-                // Проверяем приближение LowPrices на отрезке АВ к уровню точки В
-                if(DistanceFromCrossing != -1 
-                   && pointB.Index - realPointA.Index - 1 > 0
-                   && lowPoints
-                       .Skip(realPointA.Index + 1 - indexBeginDayBar)
-                       .Take(pointB.Index - realPointA.Index - 1)
-                       .Select(x => x.Value)
-                       .Min() <= pointB.Value + DistanceFromCrossing) continue;
 
                 var pointC = MaxByValue(highPoints
                     .Skip(pointB.Index - indexBeginDayBar)
@@ -499,15 +468,6 @@ namespace Simple
                 var bc = pointC.Value - pointB.Value;
                 if (bc <= LengthSegmentBC || realPointA.Value - pointC.Value < 0) continue;
 
-                // Проверяем приближение LowPrices на отрезке АС к уровню точки В
-                if(DistanceFromCrossing != -1 
-                   && pointC.Index - pointB.Index - 1 > 0
-                   && lowPoints
-                       .Skip(pointB.Index + 1 - indexBeginDayBar)
-                       .Take(pointC.Index - pointB.Index - 1)
-                       .Select(x => x.Value)
-                       .Min() <= pointB.Value + DistanceFromCrossing) continue;
-                
                 var model = GetNewShortTradingModel(pointB.Value, bc);
                 
                 // Проверяем, не отработала ли уже модель
