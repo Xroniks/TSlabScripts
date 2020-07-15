@@ -25,11 +25,6 @@
  *  - DeltaModelSpan, ограничивает время ожидания ВХОДА в позицию. При значении "-1" ограничение не работает. Ограничение задается в минутах.
  *  - DeltaPositionSpan, ограничивает время ожидания ВЫХОДА из позиции. При значении "-1" ограничение не работает. Ограничение задается в минутах.
  *
- *  Формирует часовой таймфрейм. При валидации модели опираемся на High и Low предыдущего часа
- *  BeforeHourlyBar и AfterHourlyBar формирует диапазон под и над High часового бара (для Long модели)
- *  - BeforeHourlyBar, сигнал на вход формируется если разница между High и ценой входа не больше указанного значения. При значении "-1" ограничение не работает.
- *  - AfterHourlyBar, сигнал на вход формируется если разница между High и ценой входа не больше указанного значения. При значении "-1" ограничение не работает. Ограничение задается в минутах.
- *
  *  - MultyPosition, при 0 - не выставляет ордера на вход если есть активная позиция. 1 - включено, 0 - выключено
  *  - DataInterval, таймфрейм для формирования моделей. 1 или 5 минут (с иными вариантами не тестировалось)
  * 
@@ -50,9 +45,9 @@ namespace Simple
 {
     public class Strategy : IExternalScript
     {
-        public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
+        // запретить public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
-        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
+        // public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
         
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
@@ -65,15 +60,12 @@ namespace Simple
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
-        public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
-        public OptimProperty CountBarsBetweenB_С = new OptimProperty(0, 0, 10000, 1);
+        //public OptimProperty DistanceFromCrossing = new OptimProperty(-1, -1, 10000, 0.01);
+        //public OptimProperty CountBarsBetweenB_С = new OptimProperty(0, 0, 10000, 1);
         
-        public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
-        public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
-        public OptimProperty ExtraDelta = new OptimProperty(0, -1000, 1000, 0.01);
-        
-        public OptimProperty BeforeHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
-        public OptimProperty AfterHourlyBar = new OptimProperty(-1, -1, 10000, 0.01);
+        //public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
+        //public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
+        //public OptimProperty ExtraDelta = new OptimProperty(0, -1000, 1000, 0.01);
         
         public OptimProperty EnableParabolic = new OptimProperty(0, 0, 1, 1);
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
@@ -87,8 +79,8 @@ namespace Simple
         public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
         public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
         
-        public OptimProperty EnableEMA = new OptimProperty(0, 0, 1, 1);
-        public OptimProperty PeriodEMA = new OptimProperty(34, 1, 1000, 0.01);
+        //public OptimProperty EnableEMA = new OptimProperty(0, 0, 1, 1);
+        //public OptimProperty PeriodEMA = new OptimProperty(34, 1, 1000, 0.01);
         
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan DeltaModelTimeSpan;
@@ -96,7 +88,6 @@ namespace Simple
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
         public Boolean IsReverseMode;
-        public Boolean IsHourlyMode;
         public Boolean IsCoefficient;
         public Boolean IsEMA;
         public Boolean IsParabolic;
@@ -124,7 +115,6 @@ namespace Simple
                 Convert.ToInt32(StopTimeString.Substring(4, 2)));
 
             IsReverseMode = ReverseMode > 0;
-            IsHourlyMode = BeforeHourlyBar != -1 || AfterHourlyBar != -1;
             IsCoefficient = EnableCoefficient > 0;
             IsEMA = EnableEMA > 0;
             IsParabolic = EnableParabolic > 0;
@@ -146,12 +136,6 @@ namespace Simple
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 90, false);
 
-            if (IsHourlyMode)
-            {
-                // todo выключить расчет если IsHourlyMode == false
-                pain.AddList(source.Symbol, hourlySource, CandleStyles.BAR_CANDLE, new Color(180, 180, 180), PaneSides.RIGHT);
-            }
-            
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
@@ -238,11 +222,6 @@ namespace Simple
                 SearchActivePosition(source, actualBar, indicators);
             }
 
-            if (IsClosedHourlyBar(source.Bars[actualBar].Date))
-            {   var dateActualBar = source.Bars[actualBar].Date;
-                ctx.StoreObject("HourlyBar", hourlySource.Bars.LastOrDefault(b => b.Date < dateActualBar));
-            }
-                        
             if (IsClosedBar(source.Bars[actualBar]))
             {
                 var dateActualBar = source.Bars[actualBar].Date;
@@ -585,19 +564,7 @@ namespace Simple
                 lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
             }
 
-            var result = modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
-
-            if (!result.Any()) return result;
-
-            var hourlyBar = (IDataBar) ctx.LoadObject("HourlyBar");
-            if (hourlyBar == null) return result;
-            
-            return result.Where(model =>
-            {
-                if (BeforeHourlyBar != -1 && hourlyBar.High - BeforeHourlyBar > model.EnterPrice) return false;
-                if (AfterHourlyBar != -1 && hourlyBar.High + AfterHourlyBar < model.EnterPrice) return false;
-                return true;
-            }).ToList();
+            return modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
         }
 
         private List<TradingModel> ValidateSellModel(
@@ -613,20 +580,7 @@ namespace Simple
                 lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
             }
 
-            var result = modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
-            
-            if (!result.Any()) return result;
-
-            var hourlyBar = (IDataBar) ctx.LoadObject("HourlyBar");
-            if (hourlyBar == null) return result;
-
-
-            return result.Where(model =>
-            {
-                if (BeforeHourlyBar != -1 && hourlyBar.Low + BeforeHourlyBar < model.EnterPrice) return false;
-                if (AfterHourlyBar != -1 && hourlyBar.Low - AfterHourlyBar > model.EnterPrice) return false;
-                return true;
-            }).ToList();
+            return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
         private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
@@ -754,13 +708,7 @@ namespace Simple
             // можно гарантировать что "TotalSeconds" будет не дробным, так как система работает на интервале 5 секунд.
             return ((int)bar.Date.TimeOfDay.TotalSeconds + 5) % (DataInterval * 60) == 0;
         }
-        
-        public bool IsClosedHourlyBar(DateTime date)
-        {
-            // можно гарантировать что "TotalSeconds" будет не дробным, так как система работает на интервале 5 секунд.
-            return ((int)date.TimeOfDay.TotalSeconds + 5) % (60 * 60) == 0;
-        }
-        
+
         protected virtual TradingModel GetNewLongTradingModel(double value, double bc)
         {
             var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
