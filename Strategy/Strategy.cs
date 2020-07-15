@@ -41,9 +41,9 @@ namespace Simple
 {
     public class Strategy : IExternalScript
     {
-        // запретить public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
         public OptimProperty DataInterval = new OptimProperty(5, 1, 5, 1);
-        // public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
+        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
         
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
