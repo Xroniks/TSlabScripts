@@ -65,7 +65,6 @@ namespace Simple
         
         //public OptimProperty DeltaModelSpan = new OptimProperty(-1, -1, 1140, 1);
         //public OptimProperty DeltaPositionSpan = new OptimProperty(-1, -1, 1140, 1);
-        //public OptimProperty ExtraDelta = new OptimProperty(0, -1000, 1000, 0.01);
         
         public OptimProperty EnableParabolic = new OptimProperty(0, 0, 1, 1);
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
@@ -718,7 +717,7 @@ namespace Simple
             var model = new TradingModel
             {
                 Value = value,
-                EnterPrice = value - enterPriceDelta - ExtraDelta
+                EnterPrice = value - enterPriceDelta
             };
             
             if (IsReverseMode)
@@ -744,7 +743,7 @@ namespace Simple
             var model = new TradingModel
             {
                 Value = value,
-                EnterPrice = value + enterPriceDelta + ExtraDelta
+                EnterPrice = value + enterPriceDelta
             };
             
             if (IsReverseMode)
