@@ -82,8 +82,6 @@ namespace Simple
         //public OptimProperty PeriodEMA = new OptimProperty(34, 1, 1000, 0.01);
         
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
-        public TimeSpan DeltaModelTimeSpan;
-        public TimeSpan DeltaPositionTimeSpan;
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
         public Boolean IsReverseMode;
@@ -98,9 +96,6 @@ namespace Simple
 
         public void Init()
         {
-            if(DeltaModelSpan != -1) DeltaModelTimeSpan = new TimeSpan(0, DeltaModelSpan, 0);
-            if(DeltaPositionSpan != -1) DeltaPositionTimeSpan = new TimeSpan(0, DeltaPositionSpan, 0);
-
             var StartTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
                 Convert.ToInt32(StartTimeString.Substring(0, 2)), 
@@ -448,11 +443,6 @@ namespace Simple
                     if (model.EnterPrice <= validateMax) continue;
                 }
 
-                // Проверка на время модели
-                if (DeltaModelTimeSpan.TotalMinutes > 0 &&
-                    compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
-                    continue;
-
                 models.Add(model);
                 buySignal[actualBar] = 1;
             }
@@ -538,11 +528,6 @@ namespace Simple
                     if (model.EnterPrice >= validateMin) continue;
                 }
 
-                // Проверка на время модели
-                if (DeltaModelTimeSpan.TotalMinutes > 0 &&
-                    compressSource.Bars[indexCompressBar].Date - compressSource.Bars[pointB.Index].Date > DeltaModelTimeSpan)
-                    continue;
-
                 modelSellList.Add(model);
                 sellSignal[actualBar] = 1;
             }
@@ -588,13 +573,6 @@ namespace Simple
 
             foreach (var position in positionList)
             {
-                if (DeltaPositionTimeSpan.TotalMinutes > 0 &&
-                    source.Bars[actualBar].Date - position.EntryBar.Date >= DeltaPositionTimeSpan)
-                {
-                    position.CloseAtMarket(actualBar + 1, "closeAtTime");
-                    continue;
-                }
-                
                 var arr = position.EntrySignalName.Split('_');
                 switch (arr[0])
                 {
