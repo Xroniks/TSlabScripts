@@ -54,6 +54,7 @@ namespace Simple
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 1000, 0.01);
         public OptimProperty ScopeProfit = new OptimProperty(100, 0, 10000, 0.01);
         public OptimProperty ScopeStop = new OptimProperty(300, 0, 10000, 0.01);
+        public OptimProperty Rollback = new OptimProperty(100, 0, 1000, 0.01);
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
@@ -275,7 +276,7 @@ namespace Simple
                 }
             }
 
-            source.Positions.BuyIfGreater(
+            source.Positions.BuyIfLess(
                     actualBar + 1,
                     Value, model.EnterPrice,
                     Slippage,
@@ -293,7 +294,7 @@ namespace Simple
                 }
             }
 
-            source.Positions.SellIfLess(
+            source.Positions.SellIfGreater(
                     actualBar + 1, 
                     Value, model.EnterPrice, 
                     Slippage, 
@@ -341,20 +342,39 @@ namespace Simple
                 // Проверям размер модели B-C
                 var bc = pointB.Value - pointC.Value;
                 if (bc <= LengthSegmentBC || pointC.Value - realPointA.Value < 0) continue;
-
+                
+                // Пересечения EnterPrice еще не могло быть, ждем следующий бар
+                if (indexCompressBar == pointC.Index) continue;
+                
                 var model = GetNewLongTradingModel(pointB.Value, bc);
                 
-                // Проверяем, не отработала ли уже модель
-                if (indexCompressBar != pointC.Index)
-                { 
-                    var validateMax = highPoints
-                        .Skip(pointC.Index + 1 - indexBeginDayBar)
-                        .Take(indexCompressBar - pointC.Index)
-                        .Select(x => x.Value)
-                        .Max();
-                    if (model.EnterPrice <= validateMax) continue;
+                var pointDIndex = pointC.Index + 1;
+                while (pointDIndex <= indexCompressBar)
+                {
+                    if (highPoints.First(x => x.Index == pointDIndex).Value >= model.EnterPrice)
+                    {
+                        break;
+                    }
+
+                    pointDIndex++;
                 }
 
+                // Пересечения EnterPrice еще было, ждем следующий бар
+                if (pointDIndex > indexCompressBar) continue;
+
+                model.EnterPrice = model.EnterPrice - Rollback;
+                
+                // Проверяем, не отработала ли уже модель
+                if (indexCompressBar != pointDIndex)
+                { 
+                    var validateMin = lowPoints
+                        .Skip(pointDIndex + 1 - indexBeginDayBar)
+                        .Take(indexCompressBar - pointDIndex)
+                        .Select(x => x.Value)
+                        .Min();
+                    if (validateMin >= model.EnterPrice) continue;
+                }
+                
                 models.Add(model);
                 buySignal[actualBar] = 1;
             }
@@ -403,18 +423,37 @@ namespace Simple
                 // Проверям размер модели B-C
                 var bc = pointC.Value - pointB.Value;
                 if (bc <= LengthSegmentBC || realPointA.Value - pointC.Value < 0) continue;
+                
+                // Пересечения EnterPrice еще не могло быть, ждем следующий бар
+                if (indexCompressBar == pointC.Index) continue;
 
                 var model = GetNewShortTradingModel(pointB.Value, bc);
                 
-                // Проверяем, не отработала ли уже модель
-                if (indexCompressBar != pointC.Index)
+                var pointDIndex = pointC.Index + 1;
+                while (pointDIndex <= indexCompressBar)
                 {
-                    var validateMin = lowPoints
-                        .Skip(pointC.Index + 1 - indexBeginDayBar)
-                        .Take(indexCompressBar - pointC.Index)
+                    if (lowPoints.First(x => x.Index == pointDIndex).Value <= model.EnterPrice)
+                    {
+                        break;
+                    }
+
+                    pointDIndex++;
+                }
+
+                // Пересечения EnterPrice еще было, ждем следующий бар
+                if (pointDIndex > indexCompressBar) continue;
+                
+                model.EnterPrice = model.EnterPrice + Rollback;
+                
+                // Проверяем, не отработала ли уже модель
+                if (indexCompressBar != pointDIndex)
+                {
+                    var validateMax = highPoints
+                        .Skip(pointDIndex + 1 - indexBeginDayBar)
+                        .Take(indexCompressBar - pointDIndex)
                         .Select(x => x.Value)
-                        .Min();
-                    if (model.EnterPrice >= validateMin) continue;
+                        .Max();
+                    if (validateMax >= model.EnterPrice) continue;
                 }
 
                 modelSellList.Add(model);
@@ -429,14 +468,14 @@ namespace Simple
             IReadOnlyCollection<TradingModel> modelBuyList,
             int actualBar)
         {
-            var lastMax = double.MinValue;
+            var lastMin = double.MaxValue;
 
             for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
-                lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
+                lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
             }
-
-            return modelBuyList.Where(model => model.EnterPrice > lastMax).ToList();
+            
+            return modelBuyList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
         private List<TradingModel> ValidateSellModel(
@@ -444,14 +483,14 @@ namespace Simple
             IReadOnlyCollection<TradingModel> modelSellList, 
             int actualBar)
         {
-            var lastMin = double.MaxValue;
+            var lastMax = double.MinValue;
 
             for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
             {
-                lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
+                lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
             }
 
-            return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
+            return modelSellList.Where(model => model.EnterPrice > lastMax).ToList();
         }
 
         private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
