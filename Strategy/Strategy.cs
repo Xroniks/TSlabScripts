@@ -45,7 +45,6 @@ namespace Simple
         public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
         
         public OptimProperty MultyPosition = new OptimProperty(0, 0, 1, 1);
-        public OptimProperty ReverseMode = new OptimProperty(0, 0, 1, 1);
 
         public OptimProperty StartTime = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
@@ -73,7 +72,6 @@ namespace Simple
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan StartTimeTimeSpan;
         public TimeSpan StopTimeTimeSpan;
-        public Boolean IsReverseMode;
         public Boolean IsCoefficient;
         public Boolean IsParabolic;
 
@@ -95,8 +93,7 @@ namespace Simple
                 Convert.ToInt32(StopTimeString.Substring(0, 2)), 
                 Convert.ToInt32(StopTimeString.Substring(2, 2)), 
                 Convert.ToInt32(StopTimeString.Substring(4, 2)));
-
-            IsReverseMode = ReverseMode > 0;
+            
             IsCoefficient = EnableCoefficient > 0;
             IsParabolic = EnableParabolic > 0;
         }
@@ -112,7 +109,6 @@ namespace Simple
 
             // Компрессия исходного таймфрейма в пятиминутный
             var compressSource = source.CompressTo(new Interval(DataInterval, DataIntervals.MINUTE));
-            var hourlySource = source.CompressTo(new Interval(60, DataIntervals.MINUTE));
 
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 90, false);
@@ -129,7 +125,7 @@ namespace Simple
 
             for (var historyBar = 1; historyBar < source.Bars.Count; historyBar++)
             {
-                Trading(ctx, source, compressSource, hourlySource, historyBar, buySignal, sellSignal, indicators);
+                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
             }
             
             var buyPain = ctx.CreatePane("BuySignal", 5, false);
@@ -167,7 +163,6 @@ namespace Simple
         private void Trading(IContext ctx,
             ISecurity source,
             ISecurity compressSource,
-            ISecurity hourlySource,
             int actualBar,
             IList<double> buySignal,
             IList<double> sellSignal,
@@ -210,8 +205,8 @@ namespace Simple
                     .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
                     .ToList();
                 
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, sellSignal, highPoints, lowPoints);
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, buySignal, highPoints, lowPoints);
+                SearchBuyModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
+                SearchSellModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
 
             try
@@ -235,7 +230,7 @@ namespace Simple
 
             if (modelBuyList != null && modelBuyList.Any())
             {
-                var buyList = ValidateBuyModel(ctx, source, modelBuyList, actualBar);
+                var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
 
                 if (canOpenPosition)
                 {
@@ -255,7 +250,7 @@ namespace Simple
 
             if (modelSellList != null && modelSellList.Any())
             {
-                var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
+                var sellList = ValidateSellModel(source, modelSellList, actualBar);
 
                 if (canOpenPosition)
                 {
@@ -279,16 +274,7 @@ namespace Simple
                     return;
                 }
             }
-            
-            if (IsReverseMode)
-            {
-                source.Positions.SellAtPrice(
-                    actualBar + 1,
-                    Value, model.EnterPrice,
-                    "sell_" + model.GetNamePosition + "_reverse");
-                return;
-            }
-            
+
             source.Positions.BuyIfGreater(
                     actualBar + 1,
                     Value, model.EnterPrice,
@@ -307,15 +293,6 @@ namespace Simple
                 }
             }
 
-            if (IsReverseMode)
-            {
-                source.Positions.BuyAtPrice(
-                    actualBar + 1,
-                    Value, model.EnterPrice,
-                    "buy_" + model.GetNamePosition + "_reverse");
-                return;
-            }
-            
             source.Positions.SellIfLess(
                     actualBar + 1, 
                     Value, model.EnterPrice, 
@@ -324,13 +301,11 @@ namespace Simple
         }
 
         private void SearchBuyModel(
-            IContext ctx, 
-            ISecurity compressSource, 
+            IContext ctx,
             int indexCompressBar, 
             int indexBeginDayBar,
             int actualBar, 
-            IList<double> buySignal, 
-            IList<double> sellSignal, 
+            IList<double> buySignal,
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
@@ -389,12 +364,10 @@ namespace Simple
 
         private void SearchSellModel(
             IContext ctx, 
-            ISecurity compressSource, 
             int indexCompressBar, 
             int indexBeginDayBar, 
             int actualBar, 
             IList<double> sellSignal,
-            IList<double> buySignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
@@ -452,7 +425,6 @@ namespace Simple
         }
 
         private List<TradingModel> ValidateBuyModel(
-            IContext ctx, 
             ISecurity source,
             IReadOnlyCollection<TradingModel> modelBuyList,
             int actualBar)
@@ -468,7 +440,6 @@ namespace Simple
         }
 
         private List<TradingModel> ValidateSellModel(
-            IContext ctx,
             ISecurity source, 
             IReadOnlyCollection<TradingModel> modelSellList, 
             int actualBar)
@@ -508,7 +479,7 @@ namespace Simple
         {
             var prises = new List<double>{ Convert.ToDouble(arr[3]) };
 
-            if (!IsReverseMode && IsParabolic)
+            if (IsParabolic)
             {
                 prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
             }
@@ -520,7 +491,7 @@ namespace Simple
         {
             var prises = new List<double>{ Convert.ToDouble(arr[3]) };
 
-            if (!IsReverseMode && IsParabolic)
+            if (IsParabolic)
             {
                 prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
             }
@@ -532,7 +503,7 @@ namespace Simple
         {
             var prises = new List<double>{ Convert.ToDouble(arr[4]) };
             
-            if (IsReverseMode && IsParabolic)
+            if (IsParabolic)
             {
                 prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
             }
@@ -544,7 +515,7 @@ namespace Simple
         {
             var prises = new List<double>{ Convert.ToDouble(arr[4]) };
             
-            if (IsReverseMode && IsParabolic)
+            if (IsParabolic)
             {
                 prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
             }
@@ -608,24 +579,13 @@ namespace Simple
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
 
-            var model = new TradingModel
+            return new TradingModel
             {
                 Value = value,
-                EnterPrice = value - enterPriceDelta
+                EnterPrice = value - enterPriceDelta,
+                StopPrice = value - stopPriceDelta,
+                ProfitPrice = value + profitPriceDelta
             };
-            
-            if (IsReverseMode)
-            {
-                model.StopPrice = value + stopPriceDelta;
-                model.ProfitPrice = value - profitPriceDelta;
-            }
-            else
-            {
-                model.StopPrice = value - stopPriceDelta;
-                model.ProfitPrice = value + profitPriceDelta;
-            }
-
-            return model;
         }
 
         protected virtual TradingModel GetNewShortTradingModel(double value, double bc)
@@ -634,25 +594,13 @@ namespace Simple
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
 
-            var model = new TradingModel
+            return new TradingModel
             {
                 Value = value,
-                EnterPrice = value + enterPriceDelta
+                EnterPrice = value + enterPriceDelta,
+                StopPrice = value + stopPriceDelta,
+                ProfitPrice = value - profitPriceDelta
             };
-            
-            if (IsReverseMode)
-            {
-                model.StopPrice = value - stopPriceDelta;
-                model.ProfitPrice = value + profitPriceDelta;
-            }
-            else
-            {
-
-                model.StopPrice = value + stopPriceDelta;
-                model.ProfitPrice = value - profitPriceDelta;
-            }
-
-            return model;
         }
         
         protected TimeSpan GetTimeBeginBar()
