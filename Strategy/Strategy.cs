@@ -34,6 +34,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TSLab.DataSource;
 using TSLab.Script;
+using TSLab.Script.GraphPane;
 using TSLab.Script.Handlers;
 using TSLab.Script.Optimization;
 
@@ -76,24 +77,32 @@ namespace Simple
         public Boolean IsCoefficient;
         public Boolean IsParabolic;
 
-        public IContext Logger; 
-
         public string ShortModelKey = "ShortModel";
         public string LongModelKey = "LongModel";
+        
+        public Color CompressBarColor = new Color(100, 100, 100);
+        public Color BarColor = new Color(255, 255, 255);
+        public Color LongModelColor = new Color(0, 255, 0);
+        public Color ShortModelColor = new Color(255, 0, 0);
+        public Color ParabolicColor = new Color(255, 0, 0);
+        public Color EnterPriceColor = new Color(255, 255, 0);
+        public Color RollbackColor = new Color(153, 204, 255);
+        
+        public Random Random = new Random();
 
         public void Init()
         {
-            var StartTimeString = StartTime.Value.ToString();
+            var startTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(StartTimeString.Substring(0, 2)), 
-                Convert.ToInt32(StartTimeString.Substring(2, 2)), 
-                Convert.ToInt32(StartTimeString.Substring(4, 2)));
+                Convert.ToInt32(startTimeString.Substring(0, 2)), 
+                Convert.ToInt32(startTimeString.Substring(2, 2)), 
+                Convert.ToInt32(startTimeString.Substring(4, 2)));
 
-            var StopTimeString = StopTime.Value.ToString();
+            var stopTimeString = StopTime.Value.ToString();
             StopTimeTimeSpan = new TimeSpan(
-                Convert.ToInt32(StopTimeString.Substring(0, 2)), 
-                Convert.ToInt32(StopTimeString.Substring(2, 2)), 
-                Convert.ToInt32(StopTimeString.Substring(4, 2)));
+                Convert.ToInt32(stopTimeString.Substring(0, 2)), 
+                Convert.ToInt32(stopTimeString.Substring(2, 2)), 
+                Convert.ToInt32(stopTimeString.Substring(4, 2)));
             
             IsCoefficient = EnableCoefficient > 0;
             IsParabolic = EnableParabolic > 0;
@@ -101,8 +110,6 @@ namespace Simple
         
         public void Execute(IContext ctx, ISecurity source)
         {
-            Logger = ctx;
-            
             Init();
             
             // Проверяем таймфрейм входных данных
@@ -114,31 +121,18 @@ namespace Simple
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 90, false);
 
-            pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
-            pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
+            pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, CompressBarColor, PaneSides.RIGHT);
+            pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, BarColor, PaneSides.RIGHT);
 
             var indicators = AddIndicatorOnMainPain(ctx, source, pain);
-
-            // Инцализировать индикатор моделей пустыми значениями
-            var barsCount = source.Bars.Count;
-            var buySignal = Enumerable.Repeat((double)0, barsCount).ToList();
-            var sellSignal = Enumerable.Repeat((double)0, barsCount).ToList();
-
+            
             for (var historyBar = 1; historyBar < source.Bars.Count; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
+                Trading(pain, ctx, source, compressSource, historyBar, indicators);
             }
-            
-            var buyPain = ctx.CreatePane("BuySignal", 5, false);
-            buyPain.AddList("BuySignal", buySignal, ListStyles.HISTOHRAM_FILL, new Color(0, 255, 0), LineStyles.SOLID,
-                PaneSides.RIGHT);
-
-            var sellPain = ctx.CreatePane("SellSignal", 5, false);
-            sellPain.AddList("SellSignal", sellSignal, ListStyles.HISTOHRAM_FILL, new Color(255, 0, 0), LineStyles.SOLID,
-                PaneSides.RIGHT);
         }
 
-        protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
+        protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IGraphPane pain)
         {
             var indicators = new Indicators();
 
@@ -152,7 +146,7 @@ namespace Simple
                 }.Execute(source));
                 var nameParabolic = "Parabolic (" + AccelerationStart.Value + "," + AccelerationStep.Value + "," +
                                     AccelerationMax.Value + ")";
-                pain.AddList(nameParabolic, parabolic, ListStyles.LINE, new Color(255, 0, 0), LineStyles.SOLID,
+                pain.AddList(nameParabolic, parabolic, ListStyles.LINE, ParabolicColor, LineStyles.SOLID,
                     PaneSides.RIGHT);
 
                 indicators.Parabolic = parabolic;
@@ -161,12 +155,12 @@ namespace Simple
             return indicators;
         }
 
-        private void Trading(IContext ctx,
+        private void Trading(
+            IGraphPane pain, 
+            IContext ctx,
             ISecurity source,
             ISecurity compressSource,
             int actualBar,
-            IList<double> buySignal,
-            IList<double> sellSignal,
             Indicators indicators)
         {
             if (source.Bars[actualBar].Date.TimeOfDay < GetTimeBeginBar()) return;
@@ -198,21 +192,34 @@ namespace Simple
 
                 var highPoints = compressSource.Bars
                     .Skip(indexBeginDayBar)
-                    .Select((bar, index) => new PointModel {Value = bar.High, Index = index + indexBeginDayBar})
+                    .Select((bar, index) => new PointModel
+                    {
+                        Date = bar.Date,
+                        Value = bar.High, 
+                        Index = index + indexBeginDayBar
+                    })
                     .ToList();
                 
                 var lowPoints = compressSource.Bars
                     .Skip(indexBeginDayBar)
-                    .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
+                    .Select((bar, index) => new PointModel
+                    {
+                        Date = bar.Date,
+                        Value = bar.Low, 
+                        Index = index + indexBeginDayBar
+                    })
                     .ToList();
                 
-                SearchBuyModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
-                SearchSellModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
+                SearchBuyModel(ctx, indexCompressBar, indexBeginDayBar, highPoints, lowPoints);
+                SearchSellModel(ctx, indexCompressBar, indexBeginDayBar, highPoints, lowPoints);
             }
+
+            pain.ClearInteractiveObjects();
+            PaintModel(pain, ctx, compressSource);
 
             try
             {
-                CreateOpenPositionOrder(ctx, source, actualBar, indicators);
+                CreateOpenPositionOrder(pain, ctx, source, compressSource, actualBar, indicators);
             }
             catch (Exception e)
             {
@@ -220,7 +227,56 @@ namespace Simple
             }
         }
 
-        private void CreateOpenPositionOrder(IContext ctx, ISecurity source, int actualBar, Indicators indicators)
+        private void PaintModel(IGraphPane pain, IContext ctx, ISecurity compressSource)
+        {
+            var modelBuyList = ctx.LoadObject(LongModelKey) as List<TradingModel> ?? new List<TradingModel>();
+            var modelSellList = ctx.LoadObject(ShortModelKey) as List<TradingModel> ?? new List<TradingModel>();
+
+            modelBuyList.ForEach(model =>
+            {
+                CreateLine(pain, compressSource, "AB" + model.GetNameForPaint, model.PointA, model.PointB, LongModelColor);
+                CreateLine(pain, compressSource, "BC" + model.GetNameForPaint, model.PointB, model.PointC, LongModelColor);
+                CreateLine(pain, compressSource, "AC" + model.GetNameForPaint, model.PointA, model.PointC, LongModelColor);
+            });
+
+            modelSellList.ForEach(model =>
+            {
+                CreateLine(pain, compressSource, "AB" + model.GetNameForPaint, model.PointA, model.PointB, ShortModelColor);
+                CreateLine(pain, compressSource, "BC" + model.GetNameForPaint, model.PointB, model.PointC, ShortModelColor);
+                CreateLine(pain, compressSource, "AC" + model.GetNameForPaint, model.PointA, model.PointC, ShortModelColor);
+            });
+        }
+
+        private void CreateLine(IGraphPane pain,
+            ISecurity compressSource,
+            string id,
+            PointModel firstPoint,
+            PointModel secondPoint, 
+            Color color)
+        {
+            var isExist = pain.GetInteractiveObjects().Any(x => x.Id == id);
+            var halfBar = new TimeSpan(0, DataInterval / 2, 0);
+
+            if (!isExist)
+            {
+                pain.AddInteractiveLine(
+                    id,
+                    PaneSides.RIGHT,
+                    false,
+                    color,
+                    InteractiveLineMode.Finite,
+                    new MarketPoint(compressSource.Bars[firstPoint.Index].Date.Add(halfBar), firstPoint.Value),
+                    new MarketPoint(compressSource.Bars[secondPoint.Index].Date.Add(halfBar), secondPoint.Value));
+            }
+        }
+
+        private void CreateOpenPositionOrder(
+            IGraphPane pain, 
+            IContext ctx, 
+            ISecurity source, 
+            ISecurity compressSource,
+            int actualBar,
+            Indicators indicators)
         {
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
             var canOpenPosition = (MultyPosition > 0 || source.Positions.ActivePositionCount == 0)
@@ -231,38 +287,96 @@ namespace Simple
 
             if (modelBuyList != null && modelBuyList.Any())
             {
-                var buyList = ValidateBuyModel(source, modelBuyList, actualBar);
+                var buyModels = ValidateBuyModel(source, modelBuyList, actualBar);
 
                 if (canOpenPosition)
                 {
-                    foreach (var model in buyList)
+                    foreach (var model in buyModels.ValidModel)
                     {
-                        if (source.Bars[actualBar].Date.TimeOfDay >= new TimeSpan(12, 8, 55) && source.Bars[actualBar].Date.TimeOfDay <= new TimeSpan(12, 9, 0))
-                        {
-                            Logger.Log("date: " + source.Bars[actualBar].Date + " " + model.Value);
-                        }
-                        
+                        PaintEnterPrice(pain, source, compressSource, actualBar, model); 
+                        PaintRollbackPrice(pain, source, compressSource, actualBar, model); 
+                    }
+                    
+                    foreach (var model in buyModels.ValidModelToSetPosition)
+                    {
                         CreateLongOrder(source, actualBar, model, indicators);
                     }
                 }
 
-                ctx.StoreObject(LongModelKey, buyList);
+                ctx.StoreObject(LongModelKey, buyModels.ValidModel);
             }
 
             if (modelSellList != null && modelSellList.Any())
             {
-                var sellList = ValidateSellModel(source, modelSellList, actualBar);
+                var sellModels = ValidateSellModel(source, modelSellList, actualBar);
 
                 if (canOpenPosition)
                 {
-                    foreach (var model in sellList)
+                    foreach (var model in sellModels.ValidModel)
+                    {
+                        PaintEnterPrice(pain, source, compressSource, actualBar, model); 
+                        PaintRollbackPrice(pain, source, compressSource, actualBar, model); 
+                    }
+                    
+                    foreach (var model in sellModels.ValidModelToSetPosition)
                     {
                         CreateShortOrder(source, actualBar, model, indicators);
                     }
                 }
 
-                ctx.StoreObject(ShortModelKey, sellList);
+                ctx.StoreObject(ShortModelKey, sellModels.ValidModel);
             }
+        }
+
+        private void PaintEnterPrice(IGraphPane pain, ISecurity source, ISecurity compressSource, int actualBar,
+            TradingModel model)
+        {
+            var id = "EnterPrice" + model.GetNameForPaint;
+            var isExist = pain.GetInteractiveObjects().Any(x => x.Id == id);
+
+            if (isExist)
+            {
+                pain.RemoveInteractiveObject(id);
+            }
+
+            var endPoint = model.EnterPriceBarIndex != 0 ? model.EnterPriceBarIndex : actualBar;
+            
+            pain.AddInteractiveLine(
+                id,
+            PaneSides.RIGHT,
+            false,
+            EnterPriceColor,
+            InteractiveLineMode.Finite,
+            new MarketPoint(compressSource.Bars[model.PointC.Index + 1].Date, model.EnterPrice),
+            new MarketPoint(source.Bars[endPoint].Date, model.EnterPrice)
+            );
+        }
+
+        private void PaintRollbackPrice(IGraphPane pain, ISecurity source, ISecurity compressSource, int actualBar,
+            TradingModel model)
+        {
+            if (model.EnterPriceBarIndex == 0)
+            {
+                return;
+            }
+            
+            var id = "RollbackPrice" + model.GetNameForPaint;
+            var isExist = pain.GetInteractiveObjects().Any(x => x.Id == id);
+
+            if (isExist)
+            {
+                pain.RemoveInteractiveObject(id);
+            }
+
+            pain.AddInteractiveLine(
+                id,
+                PaneSides.RIGHT,
+                false,
+                RollbackColor,
+                InteractiveLineMode.Finite,
+                new MarketPoint(source.Bars[model.EnterPriceBarIndex].Date, model.RollbackPrice),
+                new MarketPoint(source.Bars[actualBar].Date, model.RollbackPrice)
+            );
         }
 
         public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
@@ -278,7 +392,7 @@ namespace Simple
 
             source.Positions.BuyIfLess(
                     actualBar + 1,
-                    Value, model.EnterPrice,
+                    Value, model.RollbackPrice,
                     Slippage,
                     "buy_" + model.GetNamePosition);
         }
@@ -296,7 +410,7 @@ namespace Simple
 
             source.Positions.SellIfGreater(
                     actualBar + 1, 
-                    Value, model.EnterPrice, 
+                    Value, model.RollbackPrice, 
                     Slippage, 
                     "sell_" + model.GetNamePosition);
         }
@@ -305,12 +419,10 @@ namespace Simple
             IContext ctx,
             int indexCompressBar, 
             int indexBeginDayBar,
-            int actualBar, 
-            IList<double> buySignal,
-            IReadOnlyCollection<PointModel> highPoints, 
-            IReadOnlyCollection<PointModel> lowPoints)
+            IReadOnlyList<PointModel> highPoints, 
+            IReadOnlyList<PointModel> lowPoints)
         {
-            var models = new List<TradingModel>();
+            var models = ctx.LoadObject(LongModelKey) as List<TradingModel> ?? new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -342,56 +454,81 @@ namespace Simple
                 // Проверям размер модели B-C
                 var bc = pointB.Value - pointC.Value;
                 if (bc <= LengthSegmentBC || pointC.Value - realPointA.Value < 0) continue;
+
+                if(IsExistModel(models, realPointA, pointB, pointC)) continue;
+
+                var model = GetNewLongTradingModel(realPointA, pointB, pointC);
                 
-                // Пересечения EnterPrice еще не могло быть, ждем следующий бар
-                if (indexCompressBar == pointC.Index) continue;
-                
-                var model = GetNewLongTradingModel(pointB.Value, bc);
-                
-                var pointDIndex = pointC.Index + 1;
-                while (pointDIndex <= indexCompressBar)
+                // Проверяем, не пересекала ли модель ProfitPrice и StopPrice
+                if (indexCompressBar != pointC.Index)
                 {
-                    if (highPoints.First(x => x.Index == pointDIndex).Value >= model.EnterPrice)
-                    {
-                        break;
-                    }
-
-                    pointDIndex++;
-                }
-
-                // Пересечения EnterPrice еще было, ждем следующий бар
-                if (pointDIndex > indexCompressBar) continue;
-
-                model.EnterPrice = model.EnterPrice - Rollback;
-                
-                // Проверяем, не отработала ли уже модель
-                if (indexCompressBar != pointDIndex)
-                { 
-                    var validateMin = lowPoints
-                        .Skip(pointDIndex + 1 - indexBeginDayBar)
-                        .Take(indexCompressBar - pointDIndex)
+                    var validateMax = highPoints
+                        .Skip(pointC.Index + 1 - indexBeginDayBar)
+                        .Take(indexCompressBar - pointC.Index)
                         .Select(x => x.Value)
-                        .Min();
-                    if (validateMin >= model.EnterPrice) continue;
+                        .Max();
+                    if (validateMax >= model.ProfitPrice) continue;
+                    
+                    // Грубо фильтруем модели что пробили EnterPrice после чего откатились до Rollback
+                    if (validateMax >= model.EnterPrice)
+                    {
+                        var enterPriceBar = GetLongEnterPriceBar(indexCompressBar, pointC.Index + 1, highPoints, model);
+                        if (enterPriceBar != null)
+                        {
+                            var rollbackPriceBar = GetLongRollbackPriceBar(indexCompressBar, (int) enterPriceBar + 1, highPoints, model);
+                            if (rollbackPriceBar != null) continue;
+                        }
+                    }
                 }
                 
                 models.Add(model);
-                buySignal[actualBar] = 1;
             }
 
             ctx.StoreObject(LongModelKey, models);
         }
 
+        private int? GetLongEnterPriceBar(
+            int indexCompressBar, 
+            int startIndex, 
+            IReadOnlyList<PointModel> points, 
+            TradingModel model)
+        {
+            for (var i = startIndex + 1; i <= indexCompressBar; i++)
+            {
+                if (points[i].Value >= model.EnterPrice)
+                {
+                    return i;
+                }
+            }
+
+            return null;
+        }
+        
+        private int? GetLongRollbackPriceBar(
+            int indexCompressBar, 
+            int startIndex, 
+            IReadOnlyList<PointModel> points, 
+            TradingModel model)
+        {
+            for (var i = startIndex + 1; i <= indexCompressBar; i++)
+            {
+                if (points[i].Value <= model.RollbackPrice)
+                {
+                    return i;
+                }
+            }
+
+            return null;
+        }
+
         private void SearchSellModel(
             IContext ctx, 
             int indexCompressBar, 
-            int indexBeginDayBar, 
-            int actualBar, 
-            IList<double> sellSignal,
-            IReadOnlyCollection<PointModel> highPoints, 
-            IReadOnlyCollection<PointModel> lowPoints)
+            int indexBeginDayBar,
+            IReadOnlyList<PointModel> highPoints, 
+            IReadOnlyList<PointModel> lowPoints)
         {
-            var modelSellList = new List<TradingModel>();
+            var models = ctx.LoadObject(ShortModelKey) as List<TradingModel> ?? new List<TradingModel>();
 
             for (var indexPointA = indexCompressBar - 1; indexPointA >= indexBeginDayBar && indexPointA >= 0; indexPointA--)
             {
@@ -424,75 +561,206 @@ namespace Simple
                 var bc = pointC.Value - pointB.Value;
                 if (bc <= LengthSegmentBC || realPointA.Value - pointC.Value < 0) continue;
                 
-                // Пересечения EnterPrice еще не могло быть, ждем следующий бар
-                if (indexCompressBar == pointC.Index) continue;
+                if(IsExistModel(models, realPointA, pointB, pointC)) continue;
 
-                var model = GetNewShortTradingModel(pointB.Value, bc);
-                
-                var pointDIndex = pointC.Index + 1;
-                while (pointDIndex <= indexCompressBar)
+                var model = GetNewShortTradingModel(realPointA, pointB, pointC);
+
+                // Проверяем, не пересекала ли модель ProfitPrice и StopPrice
+                if (indexCompressBar != pointC.Index)
                 {
-                    if (lowPoints.First(x => x.Index == pointDIndex).Value <= model.EnterPrice)
-                    {
-                        break;
-                    }
-
-                    pointDIndex++;
-                }
-
-                // Пересечения EnterPrice еще было, ждем следующий бар
-                if (pointDIndex > indexCompressBar) continue;
-                
-                model.EnterPrice = model.EnterPrice + Rollback;
-                
-                // Проверяем, не отработала ли уже модель
-                if (indexCompressBar != pointDIndex)
-                {
-                    var validateMax = highPoints
-                        .Skip(pointDIndex + 1 - indexBeginDayBar)
-                        .Take(indexCompressBar - pointDIndex)
+                    var validateMin = lowPoints
+                        .Skip(pointC.Index + 1 - indexBeginDayBar)
+                        .Take(indexCompressBar - pointC.Index)
                         .Select(x => x.Value)
-                        .Max();
-                    if (validateMax >= model.EnterPrice) continue;
+                        .Min();
+                    if (validateMin <= model.ProfitPrice) continue;
+                    
+                    // Грубо фильтруем модели что пробили EnterPrice после чего откатились до Rollback
+                    if (validateMin <= model.EnterPrice)
+                    {
+                        var enterPriceBar = GetShortEnterPriceBar(indexCompressBar, pointC.Index + 1, lowPoints, model);
+                        if (enterPriceBar != null)
+                        {
+                            var rollbackPriceBar = GetShortRollbackPriceBar(indexCompressBar, (int) enterPriceBar + 1, lowPoints, model);
+                            if (rollbackPriceBar != null) continue;
+                        }
+                    }
                 }
 
-                modelSellList.Add(model);
-                sellSignal[actualBar] = 1;
+                models.Add(model);
             }
 
-            ctx.StoreObject(ShortModelKey, modelSellList);
+            ctx.StoreObject(ShortModelKey, models);
+        }
+        
+        private int? GetShortEnterPriceBar(
+            int indexCompressBar, 
+            int startIndex, 
+            IReadOnlyList<PointModel> points, 
+            TradingModel model)
+        {
+            for (var i = startIndex + 1; i <= indexCompressBar; i++)
+            {
+                if (points[i].Value <= model.EnterPrice)
+                {
+                    return i;
+                }
+            }
+
+            return null;
+        }
+        
+        private int? GetShortRollbackPriceBar(
+            int indexCompressBar, 
+            int startIndex, 
+            IReadOnlyList<PointModel> points, 
+            TradingModel model)
+        {
+            for (var i = startIndex + 1; i <= indexCompressBar; i++)
+            {
+                if (points[i].Value >= model.RollbackPrice)
+                {
+                    return i;
+                }
+            }
+
+            return null;
         }
 
-        private List<TradingModel> ValidateBuyModel(
+        private ValidationResult ValidateBuyModel(
             ISecurity source,
-            IReadOnlyCollection<TradingModel> modelBuyList,
+            IEnumerable<TradingModel> modelBuyList,
             int actualBar)
         {
-            var lastMin = double.MaxValue;
-
-            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
+            var models = new ValidationResult
             {
-                lastMin = source.Bars[i].Low < lastMin ? source.Bars[i].Low : lastMin;
-            }
+                ValidModel = new List<TradingModel>(),
+                ValidModelToSetPosition = new List<TradingModel>()
+            };
             
-            return modelBuyList.Where(model => model.EnterPrice < lastMin).ToList();
+            foreach (var tradingModel in modelBuyList)
+            {
+                var firstBarDate = tradingModel.PointC.Date.Add(GetTimeOneBar());
+                var indexBar = source.Bars.GetBarIndexForDate(firstBarDate);
+                
+                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar-indexBar).Min();
+                if(validateMin <= tradingModel.PointC.Value) continue;
+                
+                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar-indexBar).Max();
+                if(validateMax >= tradingModel.ProfitPrice) continue;
+
+                var enterPriceBar = GetBuyEnterPriceBar(indexBar, actualBar, source, tradingModel);
+                if (enterPriceBar == null)
+                {
+                    models.ValidModel.Add(tradingModel);
+                    continue;
+                }
+                
+                var rollbackPriceBar = GetBuyRollbackPriceBar((int)enterPriceBar + 1, actualBar, source, tradingModel);
+                if (rollbackPriceBar == null)
+                {
+                    tradingModel.EnterPriceBarIndex = (int) enterPriceBar;
+                    models.ValidModel.Add(tradingModel);
+                    models.ValidModelToSetPosition.Add(tradingModel);
+                }
+            }
+
+            return models;
         }
 
-        private List<TradingModel> ValidateSellModel(
+        private int? GetBuyEnterPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
+        {
+            for (; indexBar <= actualBar; indexBar++)
+            {
+                if (source.Bars[indexBar].High >= tradingModel.EnterPrice)
+                {
+                    return indexBar;
+                }
+            }
+
+            return null;
+        }
+
+        private int? GetBuyRollbackPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
+        {
+            for (; indexBar <= actualBar; indexBar++)
+            {
+                if (source.Bars[indexBar].Low <= tradingModel.RollbackPrice)
+                {
+                    return indexBar;
+                }
+            }
+
+            return null;
+        }
+
+        private ValidationResult ValidateSellModel(
             ISecurity source, 
             IReadOnlyCollection<TradingModel> modelSellList, 
             int actualBar)
         {
-            var lastMax = double.MinValue;
-
-            for (var i = actualBar; i >= 0 && !IsClosedBar(source.Bars[i]); i--)
+            var models = new ValidationResult
             {
-                lastMax = source.Bars[i].High > lastMax ? source.Bars[i].High : lastMax;
+                ValidModel = new List<TradingModel>(),
+                ValidModelToSetPosition = new List<TradingModel>()
+            };
+            
+            foreach (var tradingModel in modelSellList)
+            {
+                var firstBarDate = tradingModel.PointC.Date.Add(GetTimeOneBar());
+                var indexBar = source.Bars.GetBarIndexForDate(firstBarDate);
+
+                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar-indexBar).Max();
+                if(validateMax >= tradingModel.PointC.Value) continue;
+                
+                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar-indexBar).Min();
+                if(validateMin <= tradingModel.ProfitPrice) continue;
+
+                var enterPriceBar = GetSellEnterPriceBar(indexBar, actualBar, source, tradingModel);
+                if (enterPriceBar == null)
+                {
+                    models.ValidModel.Add(tradingModel);
+                    continue;
+                }
+                
+                var rollbackPriceBar = GetSellRollbackPriceBar((int)enterPriceBar + 1, actualBar, source, tradingModel);
+                if (rollbackPriceBar == null)
+                {
+                    tradingModel.EnterPriceBarIndex = (int) enterPriceBar;
+                    models.ValidModel.Add(tradingModel);
+                    models.ValidModelToSetPosition.Add(tradingModel);
+                }
             }
 
-            return modelSellList.Where(model => model.EnterPrice > lastMax).ToList();
+            return models;
         }
 
+        private int? GetSellEnterPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
+        {
+            for (; indexBar <= actualBar; indexBar++)
+            {
+                if (source.Bars[indexBar].Low <= tradingModel.EnterPrice)
+                {
+                    return indexBar;
+                }
+            }
+
+            return null;
+        }
+
+        private int? GetSellRollbackPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
+        {
+            for (; indexBar <= actualBar; indexBar++)
+            {
+                if (source.Bars[indexBar].High >= tradingModel.RollbackPrice)
+                {
+                    return indexBar;
+                }
+            }
+
+            return null;
+        }
+        
         private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
         {
             var positionList = source.Positions.GetActiveForBar(actualBar);
@@ -540,26 +808,12 @@ namespace Simple
         
         protected virtual void SetLongProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            var prises = new List<double>{ Convert.ToDouble(arr[4]) };
-            
-            if (IsParabolic)
-            {
-                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
-            }
-            
-            position.CloseAtProfit(actualBar + 1, prises.Min(), "closeProfit");
+            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
         
         protected virtual void SetShortProfit(int actualBar, IPosition position, string[] arr, Indicators indicators)
         {
-            var prises = new List<double>{ Convert.ToDouble(arr[4]) };
-            
-            if (IsParabolic)
-            {
-                prises.Add(Convert.ToDouble(indicators.Parabolic[actualBar]));
-            }
-            
-            position.CloseAtProfit(actualBar + 1, prises.Max(), "closeProfit");
+            position.CloseAtProfit(actualBar + 1, Convert.ToDouble(arr[4]), "closeProfit");
         }
 
         private void CloseAllPosition(ISecurity source, int actualBar)
@@ -612,34 +866,63 @@ namespace Simple
             return ((int)bar.Date.TimeOfDay.TotalSeconds + 5) % (DataInterval * 60) == 0;
         }
 
-        protected virtual TradingModel GetNewLongTradingModel(double value, double bc)
+        protected virtual TradingModel GetNewLongTradingModel(
+            PointModel pointA, 
+            PointModel pointB,
+            PointModel pointC)
         {
+            var bc = pointB.Value - pointC.Value;
+            
             var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
 
+            var enterPrice = pointB.Value - enterPriceDelta;
             return new TradingModel
             {
-                Value = value,
-                EnterPrice = value - enterPriceDelta,
-                StopPrice = value - stopPriceDelta,
-                ProfitPrice = value + profitPriceDelta
+                PointA = pointA,
+                PointB = pointB,
+                PointC = pointC,
+                
+                Value = pointB.Value,
+                EnterPrice = pointB.Value - enterPriceDelta,
+                RollbackPrice = enterPrice - Rollback,
+                StopPrice = pointB.Value - stopPriceDelta,
+                ProfitPrice = pointB.Value + profitPriceDelta
             };
         }
 
-        protected virtual TradingModel GetNewShortTradingModel(double value, double bc)
+        protected virtual TradingModel GetNewShortTradingModel(
+            PointModel pointA, 
+            PointModel pointB,
+            PointModel pointC)
         {
+            var bc = pointC.Value - pointB.Value;
+            
             var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
 
+            var enterPrice = pointB.Value + enterPriceDelta;
             return new TradingModel
             {
-                Value = value,
-                EnterPrice = value + enterPriceDelta,
-                StopPrice = value + stopPriceDelta,
-                ProfitPrice = value - profitPriceDelta
+                PointA = pointA,
+                PointB = pointB,
+                PointC = pointC,
+                
+                Value = pointB.Value,
+                EnterPrice = pointB.Value + enterPriceDelta,
+                RollbackPrice = enterPrice + Rollback,
+                StopPrice = pointB.Value + stopPriceDelta,
+                ProfitPrice = pointB.Value - profitPriceDelta
             };
+        }
+        
+        private static bool IsExistModel(IEnumerable<TradingModel> models, PointModel pointA, PointModel pointB, PointModel pointC)
+        {
+            return models.Any(x => 
+                x.PointB.Index == pointB.Index
+                && x.PointC.Index == pointC.Index);
         }
         
         protected TimeSpan GetTimeBeginBar()
@@ -689,16 +972,31 @@ namespace Simple
             return max;
         }
     }
-    
+
     public class TradingModel
     {
+        public PointModel PointA { get; set; }
+        
+        public PointModel PointB { get; set; }
+        
+        public PointModel PointC { get; set; }
+        
         public double Value { get; set; }
         
         public double EnterPrice { get; set; }
+        
+        public int EnterPriceBarIndex { get; set; }
+        
+        public double RollbackPrice { get; set; }
 
         public double StopPrice { get; set; }
 
         public double ProfitPrice { get; set; }
+        
+        public string GetNameForPaint
+        {
+            get { return PointA.Index + "/" + PointA.Value + "_" + PointB.Index + "/" + PointB.Value + "_" + PointC.Index + "/" + PointC.Value; }
+        }
 
         public string GetNamePosition
         {
@@ -708,6 +1006,8 @@ namespace Simple
     
     public class PointModel
     {
+        public DateTime Date { get; set; }
+        
         public double Value { get; set; }
         
         public int Index { get; set; }
@@ -716,5 +1016,12 @@ namespace Simple
     public class Indicators
     {
         public IList<double> Parabolic { get; set; }
+    }
+
+    public class ValidationResult
+    {
+        public List<TradingModel> ValidModel { get; set; }
+        
+        public List<TradingModel> ValidModelToSetPosition { get; set; }
     }
 }
