@@ -70,6 +70,10 @@ namespace Simple
         public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
         public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
+        
+        public OptimProperty ShowModel = new OptimProperty(1, 0, 1, 1);
+        public OptimProperty ShowEnterPrice = new OptimProperty(1, 0, 1, 1);
+        public OptimProperty ShowRollback = new OptimProperty(1, 0, 1, 1);
 
         public TimeSpan FiveSeconds = new TimeSpan(0, 0, 5);
         public TimeSpan StartTimeTimeSpan;
@@ -90,7 +94,7 @@ namespace Simple
         
         public Random Random = new Random();
 
-        public void Init()
+        public void Init(IContext ctx)
         {
             var startTimeString = StartTime.Value.ToString();
             StartTimeTimeSpan = new TimeSpan(
@@ -106,11 +110,14 @@ namespace Simple
             
             IsCoefficient = EnableCoefficient > 0;
             IsParabolic = EnableParabolic > 0;
+            
+            ctx.StoreObject(LongModelKey, new List<TradingModel>());
+            ctx.StoreObject(ShortModelKey, new List<TradingModel>());
         }
         
         public void Execute(IContext ctx, ISecurity source)
         {
-            Init();
+            Init(ctx);
             
             // Проверяем таймфрейм входных данных
             if (!GetValidTimeFrame(ctx, source)) return;
@@ -213,9 +220,11 @@ namespace Simple
                 SearchBuyModel(ctx, indexCompressBar, indexBeginDayBar, highPoints, lowPoints);
                 SearchSellModel(ctx, indexCompressBar, indexBeginDayBar, highPoints, lowPoints);
             }
-
-            pain.ClearInteractiveObjects();
-            PaintModel(pain, ctx, compressSource);
+            
+            if (ShowModel > 0)
+            {
+                PaintModel(pain, ctx, compressSource);
+            }
 
             try
             {
@@ -331,6 +340,11 @@ namespace Simple
         private void PaintEnterPrice(IGraphPane pain, ISecurity source, ISecurity compressSource, int actualBar,
             TradingModel model)
         {
+            if (ShowEnterPrice == 0)
+            {
+                return;
+            }
+            
             var id = "EnterPrice" + model.GetNameForPaint;
             var isExist = pain.GetInteractiveObjects().Any(x => x.Id == id);
 
@@ -355,6 +369,11 @@ namespace Simple
         private void PaintRollbackPrice(IGraphPane pain, ISecurity source, ISecurity compressSource, int actualBar,
             TradingModel model)
         {
+            if (ShowRollback == 0)
+            {
+                return;
+            }
+            
             if (model.EnterPriceBarIndex == 0)
             {
                 return;
@@ -643,13 +662,19 @@ namespace Simple
                 var firstBarDate = tradingModel.PointC.Date.Add(GetTimeOneBar());
                 var indexBar = source.Bars.GetBarIndexForDate(firstBarDate);
                 
-                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar-indexBar).Min();
-                if(validateMin <= tradingModel.PointC.Value) continue;
+                if (indexBar >= actualBar)
+                {
+                    models.ValidModel.Add(tradingModel);
+                    continue;
+                }
                 
-                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar-indexBar).Max();
-                if(validateMax >= tradingModel.ProfitPrice) continue;
+                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar - indexBar).Min();
+                if (validateMin <= tradingModel.PointC.Value) continue;
 
-                var enterPriceBar = GetBuyEnterPriceBar(indexBar, actualBar, source, tradingModel);
+                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar - indexBar).Max();
+                if (validateMax >= tradingModel.ProfitPrice) continue;
+
+                    var enterPriceBar = GetBuyEnterPriceBar(indexBar, actualBar, source, tradingModel);
                 if (enterPriceBar == null)
                 {
                     models.ValidModel.Add(tradingModel);
@@ -710,11 +735,17 @@ namespace Simple
                 var firstBarDate = tradingModel.PointC.Date.Add(GetTimeOneBar());
                 var indexBar = source.Bars.GetBarIndexForDate(firstBarDate);
 
-                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar-indexBar).Max();
-                if(validateMax >= tradingModel.PointC.Value) continue;
+                if (indexBar >= actualBar)
+                {
+                    models.ValidModel.Add(tradingModel);
+                    continue;
+                }
                 
-                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar-indexBar).Min();
-                if(validateMin <= tradingModel.ProfitPrice) continue;
+                var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar - indexBar).Max();
+                if (validateMax >= tradingModel.PointC.Value) continue;
+
+                var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar - indexBar).Min();
+                if (validateMin <= tradingModel.ProfitPrice) continue;
 
                 var enterPriceBar = GetSellEnterPriceBar(indexBar, actualBar, source, tradingModel);
                 if (enterPriceBar == null)
@@ -723,7 +754,7 @@ namespace Simple
                     continue;
                 }
                 
-                var rollbackPriceBar = GetSellRollbackPriceBar((int)enterPriceBar + 1, actualBar, source, tradingModel);
+                var rollbackPriceBar = GetSellRollbackPriceBar((int)enterPriceBar, actualBar, source, tradingModel);
                 if (rollbackPriceBar == null)
                 {
                     tradingModel.EnterPriceBarIndex = (int) enterPriceBar;
@@ -737,11 +768,11 @@ namespace Simple
 
         private int? GetSellEnterPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
         {
-            for (; indexBar <= actualBar; indexBar++)
+            for (var i = indexBar; i <= actualBar; i++)
             {
-                if (source.Bars[indexBar].Low <= tradingModel.EnterPrice)
+                if (source.Bars[i].Low <= tradingModel.EnterPrice)
                 {
-                    return indexBar;
+                    return i;
                 }
             }
 
@@ -750,11 +781,11 @@ namespace Simple
 
         private int? GetSellRollbackPriceBar(int indexBar, int actualBar, ISecurity source, TradingModel tradingModel)
         {
-            for (; indexBar <= actualBar; indexBar++)
+            for (var i = indexBar; i <= actualBar; i++)
             {
-                if (source.Bars[indexBar].High >= tradingModel.RollbackPrice)
+                if (source.Bars[i].High >= tradingModel.RollbackPrice)
                 {
-                    return indexBar;
+                    return i;
                 }
             }
 
