@@ -56,6 +56,7 @@ namespace Simple
         public OptimProperty ScopeProfit = new OptimProperty(100, 0, 10000, 0.01);
         public OptimProperty ScopeStop = new OptimProperty(300, 0, 10000, 0.01);
         public OptimProperty Rollback = new OptimProperty(100, 0, 1000, 0.01);
+        public OptimProperty RollbackProfit = new OptimProperty(100, 0, 1000, 0.01);
         
         public OptimProperty LengthSegmentAB = new OptimProperty(1000, 0, 10000, 0.01);
         public OptimProperty LengthSegmentBC = new OptimProperty(390, 0, 10000, 0.01);
@@ -488,7 +489,7 @@ namespace Simple
                     var validateMax = highPoints
                         .Skip(pointC.Index + 1)
                         .Max(x => x.Value);
-                    if (validateMax >= model.ProfitPrice) continue;
+                    if (validateMax >= model.RollbackProfitPrice) continue;
                     
                     // Грубо фильтруем модели что пробили EnterPrice после чего откатились до Rollback
                     if (validateMax >= model.EnterPrice)
@@ -578,7 +579,7 @@ namespace Simple
                     var validateMin = lowPoints
                         .Skip(pointC.Index + 1)
                         .Min(x => x.Value);
-                    if (validateMin <= model.ProfitPrice) continue;
+                    if (validateMin <= model.RollbackProfitPrice) continue;
                     
                     // Грубо фильтруем модели что пробили EnterPrice после чего откатились до Rollback
                     if (validateMin <= model.EnterPrice)
@@ -646,7 +647,7 @@ namespace Simple
                 if (validateMin <= tradingModel.PointC.Value) continue;
 
                 var validateMax = source.HighPrices.Skip(indexBar).Take(actualBar - indexBar).Max();
-                if (validateMax >= tradingModel.ProfitPrice) continue;
+                if (validateMax >= tradingModel.RollbackProfitPrice) continue;
 
                 var enterPriceBar = GetBuyEnterPriceBar(indexBar, actualBar, source, tradingModel);
                 if (enterPriceBar == null)
@@ -719,7 +720,7 @@ namespace Simple
                 if (validateMax >= tradingModel.PointC.Value) continue;
 
                 var validateMin = source.LowPrices.Skip(indexBar).Take(actualBar - indexBar).Min();
-                if (validateMin <= tradingModel.ProfitPrice) continue;
+                if (validateMin <= tradingModel.RollbackProfitPrice) continue;
 
                 var enterPriceBar = GetSellEnterPriceBar(indexBar, actualBar, source, tradingModel);
                 if (enterPriceBar == null)
@@ -881,8 +882,7 @@ namespace Simple
             var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
-
-            var enterPrice = pointB.Value - enterPriceDelta;
+            
             return new TradingModel
             {
                 PointA = pointA.Clone(),
@@ -891,7 +891,8 @@ namespace Simple
                 
                 Value = pointB.Value,
                 EnterPrice = pointB.Value - enterPriceDelta,
-                RollbackPrice = enterPrice - Rollback,
+                RollbackPrice = pointB.Value - Rollback,
+                RollbackProfitPrice = pointB.Value + RollbackProfit,
                 StopPrice = pointB.Value - stopPriceDelta,
                 ProfitPrice = pointB.Value + profitPriceDelta
             };
@@ -907,8 +908,7 @@ namespace Simple
             var enterPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayDelta) : ScopeDelta;
             var stopPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayStop) : ScopeStop;
             var profitPriceDelta = IsCoefficient ? CalculatePrice(bc, MultyplayProfit) : ScopeProfit;
-
-            var enterPrice = pointB.Value + enterPriceDelta;
+            
             return new TradingModel
             {
                 PointA = pointA.Clone(),
@@ -917,7 +917,8 @@ namespace Simple
                 
                 Value = pointB.Value,
                 EnterPrice = pointB.Value + enterPriceDelta,
-                RollbackPrice = enterPrice + Rollback,
+                RollbackPrice = pointB.Value + Rollback,
+                RollbackProfitPrice = pointB.Value - RollbackProfit,
                 StopPrice = pointB.Value + stopPriceDelta,
                 ProfitPrice = pointB.Value - profitPriceDelta
             };
@@ -965,6 +966,8 @@ namespace Simple
         public int EnterPriceBarIndex { get; set; }
         
         public double RollbackPrice { get; set; }
+        
+        public double RollbackProfitPrice { get; set; }
 
         public double StopPrice { get; set; }
 
