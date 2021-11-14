@@ -21,6 +21,7 @@ namespace Simple
 		public OptimProperty Pause2 = new OptimProperty(100000, 100000, 240000, 1);
         public OptimProperty StopTime = new OptimProperty(180000, 100000, 240000, 1);
         
+        public OptimProperty OrderVolume = new OptimProperty(1, 1, 1000, 1);
         public OptimProperty Slippage = new OptimProperty(30, 0, 1000, 0.01);
         public OptimProperty ScopeDelta = new OptimProperty(50, 0, 1000, 0.01);
         public OptimProperty ScopeProfit = new OptimProperty(100, 0, 10000, 0.01);
@@ -32,23 +33,17 @@ namespace Simple
         public OptimProperty LengthSegmentBCmin = new OptimProperty(390, 0, 10000, 0.01);
 		public OptimProperty LengthSegmentABmin = new OptimProperty(390, 0, 10000, 0.01);
 		public OptimProperty LengthSegmentBCmax = new OptimProperty(390, 0, 10000, 0.01);
-		public OptimProperty LengthSegmentDELTA = new OptimProperty(390, 0, 10000, 0.01);
-        
+
         public OptimProperty EnableParabolic = new OptimProperty(0, 0, 1, 1);
         public OptimProperty AccelerationMax = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStart = new OptimProperty(0.02, 0.01, 1, 0.01);
         public OptimProperty AccelerationStep = new OptimProperty(0.02, 0.01, 1, 0.01);
 
         public OptimProperty EnableCoefficient = new OptimProperty(0, 0, 1, 1);
-        public OptimProperty MultyplayDelta = new OptimProperty(1.03, 1.0, 2.0, double.MaxValue);
-        public OptimProperty MultyplayProfit = new OptimProperty(1011.0 / 1000.0, 1.0, 2.0, double.MaxValue);
-        public OptimProperty MultyplayStop = new OptimProperty(1.0065, 1.0, 2.0, double.MaxValue);
-        public OptimProperty MultyplayDivider = new OptimProperty(10, 1.0, 1000, 10);
-		
-		public OptimProperty MultyplayDividerDelta = new OptimProperty(10, 1.0, 1000, 10);
+
+        public OptimProperty MultyplayDividerDelta = new OptimProperty(10, 1.0, 1000, 10);
 		public OptimProperty MultyplayDividerProfit = new OptimProperty(10, 1.0, 1000, 10);
-		public OptimProperty MultyplayDividerStop = new OptimProperty(10, 1.0, 1000, 10);
-		public OptimProperty MultyplayDividerDopProfit = new OptimProperty(10, 1.0, 1000, 10);
+        public OptimProperty MultyplayDividerDopProfit = new OptimProperty(10, 1.0, 1000, 10);
 		
         public OptimProperty PriceStep = new OptimProperty(10, 0.001, 100, double.MaxValue);
 
@@ -108,12 +103,14 @@ namespace Simple
             stopwatch.Start();
 
             Init();
+
+            var sourceRt = source as ISecurityRt;
             
             // Проверяем таймфрейм входных данных
-            if (!GetValidTimeFrame(ctx, source)) return;
+            if (!GetValidTimeFrame(ctx, sourceRt)) return;
 
             // Компрессия исходного таймфрейма в пятиминутный
-            var compressSource = source.CompressTo(new Interval(DataInterval, DataIntervals.MINUTE));
+            var compressSource = source.CompressTo(new Interval(DataInterval, DataIntervals.MINUTE)) as ISecurityRt;
 
             // Генерация графика исходного таймфрейма
             var pain = ctx.CreatePane("Original", 90, false);
@@ -121,7 +118,7 @@ namespace Simple
             pain.AddList(source.Symbol, compressSource, CandleStyles.BAR_CANDLE, new Color(100, 100, 100), PaneSides.RIGHT);
             pain.AddList(source.Symbol, source, CandleStyles.BAR_CANDLE, new Color(0, 0, 0), PaneSides.RIGHT);
 
-            var indicators = AddIndicatorOnMainPain(ctx, source, pain);
+            var indicators = AddIndicatorOnMainPain(ctx, sourceRt, pain);
 
             // Инцализировать индикатор моделей пустыми значениями
             var barsCount = source.Bars.Count;
@@ -130,7 +127,7 @@ namespace Simple
             
             for (var historyBar = 1; historyBar < source.Bars.Count; historyBar++)
             {
-                Trading(ctx, source, compressSource, historyBar, buySignal, sellSignal, indicators);
+                Trading(ctx, sourceRt, compressSource, historyBar, buySignal, sellSignal, indicators);
             }
 
             var buyPain = ctx.CreatePane("BuySignal", 2, false);
@@ -145,7 +142,7 @@ namespace Simple
             ctx.Log("Время выполнениея = " + stopwatch.ElapsedMilliseconds + " ms");
         }
 
-        protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurity source, IPane pain)
+        protected virtual Indicators AddIndicatorOnMainPain(IContext ctx, ISecurityRt source, IPane pain)
         {
             var indicators = new Indicators();
 
@@ -169,8 +166,8 @@ namespace Simple
         }
 
         private void Trading(IContext ctx,
-            ISecurity source,
-            ISecurity compressSource,
+            ISecurityRt source,
+            ISecurityRt compressSource,
             int actualBar,
             IList<double> buySignal,
             IList<double> sellSignal,
@@ -213,8 +210,8 @@ namespace Simple
                     .Select((bar, index) => new PointModel {Value = bar.Low, Index = index + indexBeginDayBar})
                     .ToList();
                 
-                SearchBuyModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, buySignal, sellSignal, highPoints, lowPoints);
-                SearchSellModel(ctx, compressSource, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, buySignal, highPoints, lowPoints);
+                SearchBuyModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, buySignal, highPoints, lowPoints);
+                SearchSellModel(ctx, indexCompressBar, indexBeginDayBar, actualBar, sellSignal, highPoints, lowPoints);
             }
 
             try
@@ -227,7 +224,7 @@ namespace Simple
             }
         }
 
-        private void CreateOpenPositionOrder(IContext ctx, ISecurity source, int actualBar, Indicators indicators)
+        private void CreateOpenPositionOrder(IContext ctx, ISecurityRt source, int actualBar, Indicators indicators)
         {
             var timeActualBar = source.Bars[actualBar].Date.TimeOfDay;
             var canOpenPosition = source.Positions.ActivePositionCount <= QuantityPosition
@@ -244,11 +241,6 @@ namespace Simple
                 {
                     foreach (var model in buyList)
                     {
-                        if (source.Bars[actualBar].Date.TimeOfDay >= new TimeSpan(12, 8, 55) && source.Bars[actualBar].Date.TimeOfDay <= new TimeSpan(12, 9, 0))
-                        {
-                            // Logger.Log("date: " + source.Bars[actualBar].Date + " " + model.Value);
-                        }
-                        
                         CreateLongOrder(source, actualBar, model, indicators);
                     }
                 }
@@ -259,22 +251,21 @@ namespace Simple
             if (modelSellList != null && modelSellList.Any())
             {
                 var sellList = ValidateSellModel(ctx, source, modelSellList, actualBar);
-
+            
                 if (canOpenPosition)
                 {
                     foreach (var model in sellList)
                     {
-                        CreateShortOrder(source, actualBar, model, indicators);
+                        // CreateShortOrder(source, actualBar, model, indicators);
                     }
                 }
-
+            
                 ctx.StoreObject(ShortModelKey, sellList);
             }
         }
 
-        public virtual void CreateLongOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        public virtual void CreateLongOrder(ISecurityRt source, int actualBar, TradingModel model, Indicators indicators)
         {
-            var a = source as ISecurityRt;
             if (IsParabolic)
             {
                 var parabolicValue = indicators.Parabolic[actualBar];
@@ -283,17 +274,11 @@ namespace Simple
                     return;
                 }
             }
-
-            for (int i = 0; i < 1; i++)
-            {
-                source.Positions.BuyAtPrice(
-                    actualBar + 1,
-                    1, model.EnterPrice,
-                    i + "_buy_" + model.GetNamePosition);
-            }
+            
+            source.NewOrder(OrderType.Limit, true, model.EnterPrice, OrderVolume, "buy_" + model.GetNamePosition);
         }
 
-        public virtual void CreateShortOrder(ISecurity source, int actualBar, TradingModel model, Indicators indicators)
+        public virtual void CreateShortOrder(ISecurityRt source, int actualBar, TradingModel model, Indicators indicators)
         {            
             if (IsParabolic)
             {
@@ -316,12 +301,10 @@ namespace Simple
 
         private void SearchBuyModel(
             IContext ctx, 
-            ISecurity compressSource, 
             int indexCompressBar, 
             int indexBeginDayBar,
             int actualBar, 
             IList<double> buySignal, 
-            IList<double> sellSignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
@@ -384,12 +367,10 @@ namespace Simple
 
         private void SearchSellModel(
             IContext ctx, 
-            ISecurity compressSource, 
             int indexCompressBar, 
             int indexBeginDayBar, 
             int actualBar, 
-            IList<double> sellSignal,
-            IList<double> buySignal, 
+            IList<double> sellSignal, 
             IReadOnlyCollection<PointModel> highPoints, 
             IReadOnlyCollection<PointModel> lowPoints)
         {
@@ -452,7 +433,7 @@ namespace Simple
 
         private List<TradingModel> ValidateBuyModel(
             IContext ctx, 
-            ISecurity source,
+            ISecurityRt source,
             IReadOnlyCollection<TradingModel> modelBuyList,
             int actualBar)
         {
@@ -468,7 +449,7 @@ namespace Simple
 
         private List<TradingModel> ValidateSellModel(
             IContext ctx,
-            ISecurity source, 
+            ISecurityRt source, 
             IReadOnlyCollection<TradingModel> modelSellList, 
             int actualBar)
         {
@@ -482,7 +463,7 @@ namespace Simple
             return modelSellList.Where(model => model.EnterPrice < lastMin).ToList();
         }
 
-        private void SearchActivePosition(ISecurity source, int actualBar, Indicators indicators)
+        private void SearchActivePosition(ISecurityRt source, int actualBar, Indicators indicators)
         {
             var positionList = source.Positions.GetActiveForBar(actualBar);
 
@@ -553,14 +534,14 @@ namespace Simple
             }
         }
 
-        private bool GetValidTimeFrame(IContext ctx, ISecurity source)
+        private bool GetValidTimeFrame(IContext ctx, ISecurityRt source)
         {
             if (source.IntervalBase == DataIntervals.SECONDS && source.Interval == 5) return true;
             ctx.Log("Выбран не верный таймфрейм, выберите таймфрейм равный 5 секундам");
             return false;
         }
         
-        private int GetIndexBeginDayBar(ISecurity compressSource, DateTime dateActualBar)
+        private int GetIndexBeginDayBar(ISecurityRt compressSource, DateTime dateActualBar)
         {
             var result = compressSource.Bars.ToList().FindLastIndex(item =>
                 item.Date.TimeOfDay == StartTimeTimeSpan &&
@@ -571,7 +552,7 @@ namespace Simple
           
         }
 
-        private int GetIndexCompressBar(ISecurity compressSource, DateTime dateActualBar, int indexBeginDayBar)
+        private int GetIndexCompressBar(ISecurityRt compressSource, DateTime dateActualBar, int indexBeginDayBar)
         {
             var indexCompressBar = indexBeginDayBar;
             var tempTime = dateActualBar - GetTimeOneBar() - FiveSeconds;
