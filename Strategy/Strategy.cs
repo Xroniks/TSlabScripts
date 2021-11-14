@@ -358,8 +358,11 @@ namespace Simple
                     if (model.EnterPrice <= validateMax) continue;
                 }
 
-                models.Add(model);
-                buySignal[actualBar] = 1;
+                if (models.All(m => m.GetNamePosition != model.GetNamePosition))
+                {
+                    models.Add(model);
+                    buySignal[actualBar] = 1;
+                }
             }
 
             ctx.StoreObject(LongModelKey, models);
