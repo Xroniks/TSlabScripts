@@ -1,0 +1,1859 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TSLab.DataSource</name>
+    </assembly>
+    <members>
+        <member name="T:TSLab.DataSource.Account">
+            <summary>
+            Account information
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.Account.AccountType">
+            <summary>
+            Account types
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.UniqueId">
+            <summary>
+            уникальный иденификатор, с учетом поставщика данных
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.Id">
+            <summary>
+            DataSource account Id
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.Name">
+            <summary>
+            Account visible name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.VisualName">
+            <summary>
+            Account visible name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.Treaty">
+            <summary>
+            Attached treaty
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.Type">
+            <summary>
+            Account type
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.AllowDebet">
+            <summary>
+            Margin trade is allowed
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Account.IsPortfolioCanCalculate">
+            <summary>
+            Можно расчитать портфель средставми TSLab
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.Account.ToString">
+            <summary>
+            ToString convertion
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:TSLab.DataSource.AccountInfo">
+            <summary>
+            Additional Account information
+            Дополнительная информация по экаунту, требующая вычислений
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.AccountInfo.Update(TSLab.DataSource.Account,System.Collections.Generic.IList{System.String})">
+            <summary>
+            Вставить реальные значения, для случая если это заглушка
+            </summary>
+            <param name="acc"></param>
+            <param name="tradeplaces"></param>
+        </member>
+        <member name="P:TSLab.DataSource.AccountInfo.FullBalance">
+            <summary>
+            Полный баланс, включая денежный эквивалент бумаг
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountInfo.AvailableBalance">
+            <summary>
+            Доступные деньги
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountInfo.PlanLeverage">
+            <summary>
+            Плановое плечо
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountInfo.FactLeverage">
+            <summary>
+            Фактическое плечо
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountOrder.Account">
+            <summary>
+            Account instance
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountOrder.AccountName">
+            <summary>
+            Account name. Helper property for binding.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.AccountOrder.Quantity">
+            <summary>
+            Order quantity 
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsOption(TSLab.DataSource.ActiveType)">
+            <summary>
+            Опционом считается инструмент с типом OptionCall, OptionEuroCall, OptionPut, OptionEuroPut
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsPutOption(TSLab.DataSource.ActiveType)">
+            <summary>
+            Опционом ПУТ считается инструмент с типом OptionPut, OptionEuroPut
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsCallOption(TSLab.DataSource.ActiveType)">
+            <summary>
+            Опционом КОЛЛ считается инструмент с типом OptionCall, OptionEuroCall
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsAmericanOption(TSLab.DataSource.ActiveType)">
+            <summary>
+            Опционом американского типа считается инструмент с типом OptionCall, OptionPut
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsEuroOption(TSLab.DataSource.ActiveType)">
+            <summary>
+            Опционом европейского типа считается инструмент с типом OptionEuroCall, OptionEuroPut
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsFuture(TSLab.DataSource.ActiveType)">
+            <summary>
+            Фьючерсом считается инструмент с типом Futures, FuturesCalculated и FuturesDelivery
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ActiveTypeHelper.IsShare(TSLab.DataSource.ActiveType)">
+            <summary>
+            Акцией считается инструмент с типом Share, PreferredShare, FundShare, ADR
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.BalanceInfo">
+            <summary>
+            Account balance by active
+            Баланс актива привязанный к счету
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.TradePlace">
+            <summary>
+            Trade place
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.TradePlaceCode">
+            <summary>
+            The trade place code
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.IncomeRest">
+            <summary>
+            Входящая
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.RealRest">
+            <summary>
+            Текущая
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.PlanRest">
+            <summary>
+            Плановая
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.BruttoRest">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Turnover">
+            <summary>
+            Оборот
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.BalancePrice">
+            <summary>
+            Учетная цена
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.AssessedPrice">
+            <summary>
+            Оценочная цена
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.DailyCommission">
+            <summary>
+            Дневная комиссия
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Commission">
+            <summary>
+            Комиссия
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Balance">
+            <summary>
+            The balance value. Чистая стоимость
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.BalForwardVolume">
+            <summary>
+            Учетная стоимость
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.ProfitVolume">
+            <summary>
+            НП/У
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.PrevClose">
+            <summary>
+            Входящая Чистая
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.InBids">
+            <summary>
+            Суммарный объём своих заявок на покупку
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.InOffers">
+            <summary>
+            Суммарный объём своих заявок на продажу
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Bought">
+            <summary>
+            Куплено
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Sold">
+            <summary>
+            Продано
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.DailyPl">
+            <summary>
+            П/У (дн)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.PlCalc">
+            <summary>
+            П/У (Оцен)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.VarMargin">
+            <summary>
+            Вар.маржа
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BalanceInfo.Account">
+            <summary>
+            Account
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.BarUtils">
+            <summary>
+            \~english Utilities to work with candles \~russian Утилиты для работы со списками свечей
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.BarUtils.CompressTo``1(System.Collections.Generic.IReadOnlyList{``0},TSLab.DataSource.Interval,System.Int32)">
+            <summary>
+            Compress from one interval to anover interval
+            </summary>
+            <typeparam name="T">the bar type</typeparam>
+            <param name="bars">incoming bars</param>
+            <param name="interval">to interval</param>
+            <param name="rtSkipSeconds">calculate PotentionalOpen price from ticks with shift</param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.BarUtils.CompressToVolume(System.Collections.Generic.IReadOnlyList{TSLab.DataSource.IDataBar},TSLab.DataSource.Interval)">
+            <summary>
+            Перегруппировать бары некоторого вида в эквиобъёмные интервалы
+            </summary>
+            <param name="bars">исходные бары</param>
+            <param name="interval">требуемый интервал группирования</param>
+            <returns>серия баров, сгруппированных по объёму</returns>
+        </member>
+        <member name="M:TSLab.DataSource.BarUtils.CompressToPriceRange(System.Collections.Generic.IReadOnlyList{TSLab.DataSource.IDataBar},TSLab.DataSource.Interval,System.Double)">
+            <summary>
+            Перегруппировать бары некоторого вида в бары одинаковой высоты
+            </summary>
+            <param name="bars">исходные бары</param>
+            <param name="interval">требуемый интервал группирования</param>
+            <param name="tick">шаг цены данного инструмента</param>
+            <returns>серия баров, сгруппированных по диапазону</returns>
+        </member>
+        <member name="T:TSLab.DataSource.BaseBar">
+            <summary>
+            Базовая свеча без объема
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.IsAdditional">
+            <summary>
+            Показывает, что это виртуальная свеча, добавленная при выравнивании данных
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.BaseBar.#ctor(System.DateTime,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Конструктор
+            </summary>
+            <param name="date"></param>
+            <param name="open"></param>
+            <param name="high"></param>
+            <param name="low"></param>
+            <param name="close"></param>
+        </member>
+        <member name="M:TSLab.DataSource.BaseBar.#ctor(TSLab.DataSource.BaseBar)">
+            <summary>
+            Копирующий конструктор
+            </summary>
+            <param name="bar"></param>
+        </member>
+        <member name="M:TSLab.DataSource.BaseBar.Add(TSLab.DataSource.IBaseBar)">
+            <summary>
+            Добавляет данные из другой свечи
+            </summary>
+            <param name="b2">added bar</param>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.PotensialOpen">
+            <summary>
+            Потенциальное открытие.
+            Необязательный параметр для вычисления цены заходя по рынку.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.Open">
+            <summary>
+            Цена открытия свечи
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.High">
+            <summary>
+            Мксимальная цены свечи
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.Low">
+            <summary>
+            Минимальная цена свечи
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.Close">
+            <summary>
+            Цена закрытия свечи
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BaseBar.TicksCount">
+            <summary>
+            Количество тиков (сделок) в свече.
+            Равно 0, если не известно.
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.BaseBar.Store(System.IO.BinaryWriter)">
+            <summary>
+            Сохранение свечи в бинарном потоке
+            </summary>
+            <param name="stream">объект потока</param>
+        </member>
+        <member name="M:TSLab.DataSource.BaseBar.Restore(System.IO.BinaryReader,System.Int32)">
+            <summary>
+            Чтение свечи из бинарного потока
+            </summary>
+            <param name="stream">объект потока</param>
+            <param name="version">версия сохраненных данных</param>
+        </member>
+        <member name="T:TSLab.DataSource.BidAskBar">
+            <summary>
+            Свеча с ценами спроса и предложения
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.Bid">
+            <summary>
+            Цена предложения на момент закрытия свечи.
+            0 если не известно.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.Ask">
+            <summary>
+            Цена спроса на момент закрытия свечи.
+            0 если не известно.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.BidQty">
+            <summary>
+            Объем по цене предложения.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.AskQty">
+            <summary>
+            Объем по цене спроса.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.BuyCount">
+            <summary>
+            Суммарное текущее количество заявок на покупку.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.BidAskBar.SellCount">
+            <summary>
+            Суммарное текущее количество заявок на продажу.
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.BidAskBar.#ctor(System.DateTime,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,TSLab.DataSource.TradeNumber)">
+            <summary>
+            Конструктор
+            </summary>
+            <param name="date">дата и время</param>
+            <param name="open">цена открытия</param>
+            <param name="high">цена максимума</param>
+            <param name="low">цена минимума</param>
+            <param name="close">цена закрытия</param>
+            <param name="volume">объем</param>
+            <param name="interest">открытый интерес</param>
+            <param name="firstTradeId">Id первой сделки или 0</param>
+        </member>
+        <member name="M:TSLab.DataSource.BidAskBar.#ctor(TSLab.DataSource.DataBar)">
+            <summary>
+            Конструктор из объекта DataBar
+            </summary>
+            <param name="bar"></param>
+        </member>
+        <member name="M:TSLab.DataSource.BidAskBar.Add(TSLab.DataSource.IBaseBar)">
+            <summary>
+            Операция добавления данных из другой свечи (объединение свечей)
+            </summary>
+            <param name="b2">добавляемая свеча</param>
+        </member>
+        <member name="M:TSLab.DataSource.BidAskBar.Clone">
+            <summary>
+            Клонирование объекта
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:TSLab.DataSource.CommonOrderInfoUtils">
+            <summary>
+            Common Order Info utility
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.CommonOrderInfoUtils.CopyCommentTo(TSLab.DataSource.ICommentInfo,TSLab.DataSource.ICommentInfo)">
+            <summary>
+            Перенос комментариев из одного объекта в другой.
+            Копируются ЗНАЧЕНИЯ полей (TradeName, Signal, Note, ContainerId) и
+            по возможности (PortfolioOrderId, Slippage, OrderType)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataBar.Volume">
+            <summary>
+            Объем свечи.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataBar.Interest">
+            <summary>
+            Открытый интерес на момент закрытия свечи.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataBar.FirstTradeId">
+            <summary>
+            Id сделки открытия свечи (0 - если не известно)
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.DataBar.#ctor(System.DateTime,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Конструктор (используется для создания свечей в поставщике)
+            </summary>
+            <param name="date">дата и время</param>
+            <param name="open">цена открытия</param>
+            <param name="high">цена максимума</param>
+            <param name="low">цена минимума</param>
+            <param name="close">цена закрытия</param>
+            <param name="volume">объем</param>
+            <param name="interest">открытый интерес</param>
+        </member>
+        <member name="M:TSLab.DataSource.DataBar.#ctor(System.DateTime,System.Double,System.Double,System.Double,System.Double,System.Double,System.Double,TSLab.DataSource.TradeNumber)">
+            <summary>
+            Конструктор
+            </summary>
+            <param name="date">дата и время</param>
+            <param name="open">цена открытия</param>
+            <param name="high">цена максимума</param>
+            <param name="low">цена минимума</param>
+            <param name="close">цена закрытия</param>
+            <param name="volume">объем</param>
+            <param name="interest">открытый интерес</param>
+            <param name="firstTradeId">Id первой сделки или 0</param>
+        </member>
+        <member name="M:TSLab.DataSource.DataBar.#ctor(TSLab.DataSource.DataBar)">
+            <summary>
+            Копирующий конструктор
+            </summary>
+            <param name="bar"></param>
+        </member>
+        <member name="M:TSLab.DataSource.DataBar.Add(TSLab.DataSource.IBaseBar)">
+            <summary>
+            Операция добавления данных из другой свечи (объединение свечей)
+            </summary>
+            <param name="b2">добавляемая свеча</param>
+        </member>
+        <member name="M:TSLab.DataSource.DataSourceSecurityHelper.DecimalsFromTick(System.Double)">
+            <summary>
+            Количество значащих цифр после запятой
+            </summary>
+            <param name="tick">шаг цены</param>
+            <returns>
+            Количество значащих цифр после запятой
+            </returns>
+        </member>
+        <member name="M:TSLab.DataSource.DataSourceSecurityHelper.Equals(TSLab.DataSource.IDataSourceSecurity,System.Object)">
+            <summary>
+            При сравнении проверяется равенство 3-х характеристик:
+            Id, TradePlaceId, DSName
+            </summary>
+            <param name="sec"></param>
+            <param name="obj"></param>
+            <returns>true, если obj является объектом IDataSourceSecurity и у нас совпадают указанные характеристики</returns>
+        </member>
+        <member name="T:TSLab.DataSource.DateBar">
+            <summary>
+            Свеча с датой
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.DateBar.#ctor(System.DateTime)">
+            <summary>
+            Конструктор из даты
+            </summary>
+            <param name="date"></param>
+        </member>
+        <member name="M:TSLab.DataSource.DateBar.#ctor(TSLab.DataSource.DateBar)">
+            <summary>
+            Копирующий конструктор
+            </summary>
+            <param name="bar"></param>
+        </member>
+        <member name="P:TSLab.DataSource.DateBar.Date">
+            <summary>
+            Дата/время свечи
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DateBar.Ticks">
+            <summary>
+            Дата/время в процессорных тиках
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.DateBar.Clone">
+            <inheritdoc />
+            <summary>
+            Клонирование свечи
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.DateBar.Store(System.IO.BinaryWriter)">
+            <summary>
+            Сохранение свечи в бинарном потоке
+            </summary>
+            <param name="stream">объект потока</param>
+        </member>
+        <member name="M:TSLab.DataSource.DateBar.Restore(System.IO.BinaryReader,System.Int32)">
+            <summary>
+            Чтение свечи из бинарного потока
+            </summary>
+            <param name="stream">объект потока</param>
+            <param name="version">версия сохраненных данных</param>
+        </member>
+        <member name="T:TSLab.DataSource.DecompressMethod">
+            <summary>
+            Decompression methods
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.DecompressMethodWithDef">
+            <summary>
+            Decompression methods with default state
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.CommentInfoWithPortfolioId.#ctor(System.String)">
+            <summary>
+            Parse from old comment style like "9101#30#1.1#aa.sss"
+            </summary>
+            <param name="comment">the old style comment</param>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Security">
+            <summary>
+            Бумага
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Bid">
+            <summary>
+            Цена спроса/покупки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Ask">
+            <summary>
+            Цена продажи/предложения
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.BidSize">
+            <summary>
+            Количество спроса/покупки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.AskSize">
+            <summary>
+            Количество продажи/предложения
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.OpenPrice">
+            <summary>
+            Цена открытия сессии
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.LastPrice">
+            <summary>
+            Цена последней сделки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.LastSize">
+            <summary>
+            Объем последней сделки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.AvgPrice">
+            <summary>
+            Средняя цена за сессию
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.ClosePrice">
+            <summary>
+            Цена закрытия сессии (прошлой)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Change">
+            <summary>
+            Изменение (абсолютное)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.ChangePercent">
+            <summary>
+            Изменение (относительное)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.MaxDeal">
+            <summary>
+            Максимальная цена сделки за сессию
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.MinDeal">
+            <summary>
+            Минимальная цена сделки за сессию
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.SumQty">
+            <summary>
+            Объем совершенных сделок, выраженный в единицах ценных бумаг
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.SumVolume">
+            <summary>
+            Объем совершенных сделок, выраженный в рублях.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.NoDeal">
+            <summary>
+            Количество сделок за торговый день
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.LastUpdate">
+            <summary>
+            Время последнего обновления
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.LastTradeUpdate">
+            <summary>
+            Время последней сделки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.PrevPrice">
+            <summary>
+            Цена последней сделки предыдущего торгового дня
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Price2PrevAvg">
+            <summary>
+            Цена последней сделки к оценке предыдущего дня
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.BuySqty">
+            <summary>
+            Объем всех заявок на покупку (bid) в очереди торговой системы, выраженный в единицах ценных бумаг
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.BuyCount">
+            <summary>
+            Количество заявок на покупку (bid) в очереди торговой системы
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.SellSqty">
+            <summary>
+            Объем всех заявок на продажу (ask) в очереди торговой системы, выраженный в единицах ценных бумаг
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.SellCount">
+            <summary>
+            Количество заявок на продажу (ask) в очереди торговой системы
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.StatusDescription">
+            <summary>
+            Состояние торговой сессии по инструменту
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.IsTradingEnabled">
+            <summary>
+            Торги по инструменту разрешены или нет
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.BuyDeposit">
+            <summary>
+            Гарантийные обязательства покупателя, в рублях
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.SellDeposit">
+            <summary>
+            Гарантийные обязательства продавца, в рублях
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.PriceMax">
+            <summary>
+            Верхний лимит цены
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.PriceMin">
+            <summary>
+            Нижний лимит цены
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.StepPrice">
+            <summary>
+            Стоимость шага цены
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Volatility">
+            <summary>
+            Волатильность финансового инструмента (всегда выражена в долях, а не в процентах)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.TheoreticalPrice">
+            <summary>
+            Теоретическая (Расчетная) цена опциона
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.HighBid">
+            <summary>
+            Наибольшая цена спроса в течение торговой сессии
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.LowOffer">
+            <summary>
+            Наименьшая цена предложения в течение торговой сессии
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.OpenInterest">
+            <summary>
+            Открытый интерес
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.ExpirationDate">
+            <summary>
+            Дата экспирации (если применимо)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.ActiveType">
+            <summary>
+            Тип инструмента
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Tick">
+            <summary>
+            Шаг цены (не путать со СТОИМОСТЬЮ шага цены StepPrice)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.FinInfo.Strike">
+            <summary>
+            Страйк опциона (null, если к инструменту неприменимо)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IAccountInfo.Account">
+            <summary>
+            The account owner
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.IAltSourceTradeSubscriber">
+            <summary>
+            Специализированный интерфейс, который может реализовать ТОРГОВЫЙ ПРОВАЙДЕР,
+            чтобы показать свою заинтересованность в получении ТОРГОВЫХ СОБЫТИЙ от ДАТАФИДА
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IAltSourceTradeSubscriber.AltSourceOperationInfo(TSLab.DataSource.TransactionInfo)">
+            <summary>
+            Датафид публикует информацию о новой транзакции
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IAltSourceTradeSubscriber.AltSourceNewTrade(TSLab.DataSource.ITradeSource,TSLab.DataSource.BlockDelegateEventArgs{TSLab.DataSource.TradeWithOwner})">
+            <summary>
+            Датафид публикует информацию о новой сделке (сделка с заявкой датафида)
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IAltSourceTradeSubscriber.AltSourceOrderCreated(TSLab.DataSource.ITradeSource,TSLab.DataSource.BlockDelegateEventArgs{TSLab.DataSource.OrderInfo})">
+            <summary>
+            Датафид публикует информацию о новой заявке (заявка датафида)
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IAltSourceTradeSubscriber.AltSourceAccountAdded(TSLab.DataSource.IPortfolioSourceBase,TSLab.DataSource.Account)">
+            <summary>
+            New account has been received
+            </summary>
+            <param name="data">DataSource</param>
+            <param name="info">Account information</param>
+        </member>
+        <member name="M:TSLab.DataSource.IAltSourceTradeSubscriber.AltSourceBalance(TSLab.DataSource.IPortfolioSourceBase,TSLab.DataSource.BalanceInfo,System.Boolean)">
+            <summary>
+            Balance event delegate
+            </summary>
+            <param name="data">PortfolioSource</param>
+            <param name="info">Balance information</param>
+            <param name="remove">баланс был удален</param>
+        </member>
+        <member name="M:TSLab.DataSource.IBaseBar.Add(TSLab.DataSource.IBaseBar)">
+            <summary>
+            Операция добавления данных из другой свечи (объединение свечей)
+            </summary>
+            <param name="b2">добавляемая свеча</param>
+        </member>
+        <member name="P:TSLab.DataSource.IBar.StepPrice">
+            <summary>
+            Это именно 'Стоимость шага цены', которая берется из котировок в момент прихода сделки. Мы ее запоминаем.
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.DSConnectionState">
+            <summary>
+            Describes the current state of the connection to a data source.
+            </summary>     
+        </member>
+        <member name="M:TSLab.DataSource.IConnectable.Connect">
+            <summary>
+            Connect to server
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IConnectable.Disconnect">
+            <summary>
+            Disconnect from server
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IConnectable.Initialize">
+            <summary>
+            Initialize DS
+            </summary>
+            <returns>Is ready to work</returns>
+        </member>
+        <member name="M:TSLab.DataSource.IConnectable.OnEndInitialize">
+            <summary>
+            Initialize DS
+            </summary>
+            <returns>Is ready to work</returns>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsConnected">
+            <summary>
+            Is DS connected to server
+            True if state is not Disconnected or Broken or Invalid
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsReady">
+            <summary>
+            Is DS connected and loaded whole necessary data
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsReadyForConnect">
+            <summary>
+            True if nessesary settings is defined (by example login/password)
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IConnectable.CheckReadyForConnect(System.Boolean)">
+            <summary>
+            Check nessesary settings for connect
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsLostConnection">
+            <summary>
+            True if lost connection after the connected state. The ds will try to reconnect.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsDisconnectedState">
+            <summary>
+            True if state is Disconnected or Broken or Invalid
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.ConnectionState">
+            <summary>
+            Current connection state
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.ServerTime">
+            <summary>
+            Current server time
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.ServerTimeLocalShift">
+            <summary>
+            Current server time shift from local time zone
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IConnectable.IsServerTimeWasAproximated">
+            <summary>
+            Shows that the server time was calculated from local time
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IChangePasswordSupport.Login">
+            <summary>
+            Используется для отображения в диалоге смены пароля
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.SettingsChangedHandler">
+            <summary>
+            Обработчик изменения настроек провайдера данных
+            </summary>
+            <param name="ds">провайдер данных</param>
+            <param name="settings">новые настройки</param>
+        </member>
+        <member name="F:TSLab.DataSource.DataSourceFeatures.SecurityCategories">
+            <summary>
+            true если заполняется ActiveType в Security
+            (по дефолту считается, что все провайдеры стараются выставить ActiveType)
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.DataSourceFeatures.StayOrdersOnNextDay">
+            <summary>
+            Переносятся ли заявки на следующий день
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.DataSourceFeatures.NewsSupported">
+            <summary>
+            Поддерживается ли получение новостей
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.DataSourceFeatures.AsyncSecuritiesRequest">
+            <summary>
+            Поддерживает асинхронную загрузку бумаг по фильтру.
+            При этом в провайдер будет отправлен запрос на получение списка подходящих бумаг
+            ПРИ ВВОДЕ КАЖДОГО СИМВОЛА в строку поиска
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.DataSourceFeatures.CachedSecuritiesShowed">
+            <summary>
+            Показ закешированных бумаг в выборе бумаг без запроса
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.IDataSource">
+            <summary>
+            Base Data Source class
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.Name">
+            <summary>
+            The data source name attribute
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.Grouping">
+            <summary>
+            Shows that can add only single instance of this group can connect in each time.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.GroupName">
+            <summary>
+            The group name. By default is data source name.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.Invisible">
+            <summary>
+            Shows that this data source doesn't shown in the "New Data Source" form.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.IsOrderHoldOvernight">
+            <summary>
+            переносится ли лимитная заявка на следующий день. По умолчанию да.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.IsChangePasswordSupported">
+            <summary>
+            Поддерживается ли смена пароля. По умолчанию нет.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.IsShowCachedSecuritiesSupported">
+            <summary>
+            Поддерживается ли показ закешированных бумаг без доп.запроса к поставщику. По умолчанию нет.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.IsKeyRequired">
+            <summary>
+            Требуется ли ключ для работы поставщика. По умолчанию да.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.DataSourceDescription.IsCryptoProvider">
+            <summary>
+            Is provider crypto related?
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ProviderDescriptionAttribute.GroupName">
+            <summary>
+            The data source name attribute
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ProviderDescriptionAttribute.Order">
+            <summary>
+            относительный индекс для порядка отображения списком
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ProviderDescriptionAttribute.IsEnabled">
+            <summary>
+            разрешено ли создавать новый провайдер данных
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ProviderDescriptionAttribute.IsOffline">
+            <summary>
+            оффлайновый источник данных
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Name">
+            <summary>
+            Security Name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.FullName">
+            <summary>
+            Security FullName
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Comment">
+            <summary>
+            Security Comment
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Currency">
+            <summary>
+            Security Currency
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.TradePlace">
+            <summary>
+            TradePlace
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.DSName">
+            <summary>
+            Data Source Name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.LotSize">
+            <summary>
+            Lot size
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.LotTick">
+            <summary>
+            Lot tick (1 by default)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Margin">
+            <summary>
+            Margin
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Decimals">
+            <summary>
+            Decimals after point
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.BalanceDecimals">
+            <summary>
+            Decimals after point for balances
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Tick">
+            <summary>
+            Minimal increment value (price step)
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IDataSourceSecurity.GetTick(System.Double)">
+            <summary>
+            Get tick related a price
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Expired">
+            <summary>
+            Expired or not
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.IsMoney">
+            <summary>
+            True if the security is a money active
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.ActiveType">
+            <summary>
+            Type of active
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.BaseSecurity">
+            <summary>
+            Underlying Asset (for options)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.Strike">
+            <summary>
+            Option strike
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceSecurity.ExpirationDate">
+            <summary>
+            Expiration date (if possible)
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.IDataSourceWithAltMarketData">
+            <summary>
+            Интерфейс для провайдера, который собирается потенциально использовать альтернативный дата-фид
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IDataSourceWithAltMarketData.AltDataSourceTypeName">
+            <summary>
+            Имя дотнет класса, который СЕЙЧАС является для нас провайдером данных
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IDataSourceWithAltMarketData.IsThisAltDataSourceSupported(System.String)">
+            <summary>
+            Проверить, что данный дотнет класс может быть поставщиком данных для нашего торгового провайдера
+            </summary>
+            <param name="typeName">имя дотнет класса (БЕЗ НЕЙМСПЕЙСА!)</param>
+            <returns>true, если данная связь предусмотрена</returns>
+        </member>
+        <member name="M:TSLab.DataSource.IDataSourceWithAltMarketData.GetAltDataSourcesSupported">
+            <summary>
+            Вернуть список имен тех классов (без неймспейсов!), которые потенциально могут быть
+            для нас источниками рыночных данных
+            </summary>
+            <returns>список имен классов (без неймспейсов!)</returns>
+        </member>
+        <member name="M:TSLab.DataSource.IDataSourceWithAltMarketData.AfterAltSourceConnected">
+            <summary>
+            Метод вызывается после того, как альтернативный провайдер перейдет в статус Connected.
+            То есть сначала завершается подключение альтернативного провайдера,
+            затем хелпер выставляет торговому провайдеру статус Connected и
+            после этого вызывает AfterAltSourceConnected у торгового провайдера.
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.IIdentificator">
+            <summary>
+            Class that contains Id
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.DataIntervals">
+            <summary>
+            Base data interval
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.Interval">
+            <summary>
+            Interval structure
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.AccountAddedDelegate">
+            <summary>
+            New account has been received
+            </summary>
+            <param name="data">DataSource</param>
+            <param name="info">Account information</param>
+        </member>
+        <member name="T:TSLab.DataSource.BalanceDelegate">
+            <summary>
+            Balance event delegate
+            </summary>
+            <param name="data">PortfolioSource</param>
+            <param name="info">Balance information</param>
+            <param name="remove">баланс был удален</param>
+        </member>
+        <member name="T:TSLab.DataSource.IPortfolioSourceBase">
+            <summary>
+            Get accounts and balance information
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IPortfolioSourceBase.Accounts">
+            <summary>
+            Enumerate current accounts
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.GetAccountSessionStart(System.String)">
+            <summary>
+            Session start for this account
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.GetAccountKey(TSLab.DataSource.Account)">
+            <summary>
+            Сгенерить ключ для эккаунта.
+            </summary>
+            <param name="account">Эккаунт. гарантирует что вызов будет в онлайне.</param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.GetBalanceCurrency(System.String,TSLab.DataSource.IDataSourceSecurity)">
+            <summary>
+            Get money balance info for security
+            </summary>
+            <param name="accountId">the account id</param>
+            <param name="security">Security used only in Transaq now</param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.AttachAccountEvents(TSLab.DataSource.AccountAddedDelegate,TSLab.DataSource.BalanceDelegate)">
+            <summary>
+            Subscribe to account and events
+            </summary>
+            <param name="accHandler"></param>
+            <param name="balHandler"></param>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.DetachAccountEvents(TSLab.DataSource.AccountAddedDelegate,TSLab.DataSource.BalanceDelegate)">
+            <summary>
+            Desubscribe to account and events
+            </summary>
+            <param name="accHandler"></param>
+            <param name="balHandler"></param>
+        </member>
+        <member name="M:TSLab.DataSource.IPortfolioSourceBase.GetBalanceCurrencyName">
+            <summary>
+            get default security name
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="T:TSLab.DataSource.IQueueData">
+            <summary>
+            Orders queue element
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IQueueData.Price">
+            <summary>
+            ELement price
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IQueueData.LastUpdate">
+            <summary>
+            Last update time
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.IQueueData.Quantity">
+            <summary>
+            ELement quantity
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IRelatedOrdersSupport.NewRelatedOrder(TSLab.DataSource.IDataSourceSecurity,TSLab.DataSource.Account,System.Boolean,System.Double,System.Double,System.Nullable{System.Double},System.Double,TSLab.DataSource.ICommentInfoWithPortfolio,System.DateTime,TSLab.DataSource.OrderParameters)">
+            <summary>
+            Make new related order
+            </summary>
+            <param name="security">security</param>
+            <param name="account">account</param>
+            <param name="isBuy">buy or sell</param>
+            <param name="stopPrice">price for stop-loss order</param>
+            <param name="takePrice">price for take-profit order</param>
+            <param name="slippage">price slippage in percent</param>
+            <param name="quantity">quantity</param>
+            <param name="comment">order comment</param>
+            <param name="endDate">end date of order</param>
+            <param name="parameters">order parameters</param>
+            <returns>transaction id</returns>
+        </member>
+        <member name="P:TSLab.DataSource.IRelatedOrdersSupport.IsRelatedEnabled">
+            <summary>
+            Is related oreders support enabled
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.NewFinInfoDelegate">
+            <summary>
+            Receive Fin Info update
+            </summary>
+            <param name="data">security data</param>
+            <param name="info">new FinInfo</param>
+        </member>
+        <member name="T:TSLab.DataSource.NetTradeDelegate">
+            <summary>
+            Receive new trade data
+            </summary>
+            <param name="data">security data</param>
+            <param name="trade">trade info</param>
+        </member>
+        <member name="T:TSLab.DataSource.BlockTradeDelegate">
+            <summary>
+            Receive new block of the trade data
+            </summary>
+            <param name="data">security data</param>
+            <param name="operation">operation</param>
+            <param name="trade">trade info</param>
+        </member>
+        <member name="T:TSLab.DataSource.NetQueueDelegate">
+            <summary>
+            Receive new queue data
+            </summary>
+            <param name="data">security data</param>
+            <param name="operation">operation with data</param>
+            <param name="queueElements">queue string info</param>
+        </member>
+        <member name="T:TSLab.DataSource.NetBarsDelegate">
+            <summary>
+            Async bar loader callback
+            </summary>
+            <param name="data">security data</param>
+            <param name="bars">newly loaded bars</param>
+            <returns>true if more bars is needed or false if not</returns>
+        </member>
+        <member name="T:TSLab.DataSource.IDataByRequest">
+            <summary>
+            Дополнительный интерфейс для источника данных, который говорит о том что новые данные
+            выдаются по запросу.
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.IDataByRequest.RaiseReguest">
+            <summary>
+            Запрос на новые данные
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.ISecurityData">
+            <summary>
+            Security data interface
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ISecurityData.GetBars(System.Collections.Generic.List{TSLab.DataSource.IDataBar},System.DateTime,System.DateTime,TSLab.DataSource.Interval,System.Int32,TSLab.DataSource.NetBarsDelegate)">
+            <summary>
+            Get the security history data
+            </summary>
+            <param name="oldBars">previus loaded bars (can be null)</param>
+            <param name="startTime"></param>
+            <param name="endTime"></param>
+            <param name="preferedInterval"></param>
+            <param name="maxBarsCount">max loaded bars (can be ignored)</param>
+            <param name="asyncLoadHandler">handler for async bars loading or null</param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.ISecurityData.Attach(TSLab.DataSource.NewFinInfoDelegate,TSLab.DataSource.BlockTradeDelegate,TSLab.DataSource.NetQueueDelegate)">
+            <summary>
+            Subscribe to events
+            </summary>
+            <param name="finInfo">New FinInfo handler or null</param>
+            <param name="tradeInfo">Block Trade data handler or null</param>
+            <param name="queueInfo">New Queue data handler or null</param>
+        </member>
+        <member name="M:TSLab.DataSource.ISecurityData.Detach(TSLab.DataSource.NewFinInfoDelegate,TSLab.DataSource.BlockTradeDelegate,TSLab.DataSource.NetQueueDelegate)">
+            <summary>
+            Desubscribe from events
+            </summary>
+            <param name="finInfo">New FinInfo handler or null</param>
+            <param name="tradeInfo">Block Trade data handler or null</param>
+            <param name="queueInfo">New Queue data handler or null</param>
+        </member>
+        <member name="M:TSLab.DataSource.ISecurityData.GetTrades(System.DateTime,System.DateTime,System.Int32)">
+            <summary>
+            Get trades for this security
+            </summary>
+            <param name="startTime">
+              begin of date interval
+            </param>
+            <param name="endTime">end of date interval</param>
+            <param name="maxTradesCount">the maximum trades count</param>
+            <returns>the list of trades</returns>
+        </member>
+        <member name="P:TSLab.DataSource.ISecurityData.FinInfo">
+            <summary>
+            Get current fin information
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ISecurityData.LastTrade">
+            <summary>
+            Gets the last trade or null
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ISecurityData.FirstTradeFromConnect">
+            <summary>
+            Gets the first trade from last connect or null
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ISecurityData.DataSource">
+            <summary>
+            Get DataSource for this data
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.ISecurityData.Security">
+            <summary>
+            Get Security description
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ISecurityData.ClearTempData(TSLab.DataSource.Interval,System.DateTime)">
+            <summary>
+            Remove all cached/temp data
+            </summary>
+            <param name="interval">interval</param>
+            <param name="dateReload">the protection date</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.AttachTradeEvents(TSLab.DataSource.BlockDelegate{TSLab.DataSource.OrderInfo},TSLab.DataSource.BlockDelegate{TSLab.DataSource.TradeWithOwner},TSLab.DataSource.TransactionDelegate)">
+            <summary>
+            Attach event handlers to Data Source
+            DataSource should send whole existing orders after attaching
+            </summary>
+            <param name="orderCreated">new order created event handler</param>
+            <param name="newTrade">new trade event handler</param>
+            <param name="operationInfo">order operation info handler</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.DetachTradeEvents(TSLab.DataSource.BlockDelegate{TSLab.DataSource.OrderInfo},TSLab.DataSource.BlockDelegate{TSLab.DataSource.TradeWithOwner},TSLab.DataSource.TransactionDelegate)">
+            <summary>
+            Detach event handlers to Data Source
+            </summary>
+            <param name="orderCreated">new order created event handler</param>
+            <param name="newTrade">new trade event handler</param>
+            <param name="operationInfo">order operation info handler</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.GetTrades(System.DateTime)">
+            <summary>
+            Get trades made after the specified date
+            </summary>
+            <param name="from"></param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.UpdateOrderComment(TSLab.DataSource.TradeNumber,TSLab.DataSource.IExtendedOrderInfo)">
+            <summary>
+            Update order info (comment)
+            </summary>
+            <param name="orderId">the order id</param>
+            <param name="comment">new order comment</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.UpdateTradeComment(TSLab.DataSource.TradeNumber,TSLab.DataSource.ICommentInfoWithPortfolio)">
+            <summary>
+            Update trade info (comment)
+            </summary>
+            <param name="tradeId">the trade id</param>
+            <param name="comment">new trade comment</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.NewOrder(TSLab.DataSource.IDataSourceSecurity,TSLab.DataSource.Account,TSLab.DataSource.OrderType,System.Boolean,System.Nullable{System.Double},System.Nullable{System.Double},System.Double,TSLab.DataSource.ICommentInfoWithPortfolio,System.DateTime,TSLab.DataSource.OrderParameters)">
+            <summary>
+            Make new order
+            </summary>
+            <param name="security">security</param>
+            <param name="account">account</param>
+            <param name="type">order type</param>
+            <param name="isBuy">buy or sell</param>
+            <param name="price">price (null - by market)</param>
+            <param name="slippage">price slippage in percent</param>
+            <param name="quantity">quantity</param>
+            <param name="comment">order comment</param>
+            <param name="endDate">end date of order</param>
+            <param name="parameters">order parameters</param>
+            <returns>transaction id</returns>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.CancelOrder(TSLab.DataSource.OrderInfo,TSLab.DataSource.OrderParameters)">
+            <summary>
+            Cancel order
+            </summary>
+            <param name="order">order</param>
+            <param name="parameters">order parameters</param>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource.ConvertTimeToUtc(System.DateTime)">
+            <summary>
+            Convert input datasource time to UTC
+            </summary>
+            <param name="time">the datasource time</param>
+            <returns>the Utc time</returns>
+        </member>
+        <member name="T:TSLab.DataSource.ITradeSource2">
+            <summary>
+            Trade source with edit support
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource2.CanChangeOrder(TSLab.DataSource.OrderInfo,System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double})">
+            <summary>
+            Check that order can be changed
+            </summary>
+            <param name="order">order to check</param>
+            <param name="newPrice">new price (can be null)</param>
+            <param name="slippage">price slippage in percent</param>
+            <param name="newQuantity">new quantity (can be null)</param>
+            <returns>returns true or false</returns>
+        </member>
+        <member name="M:TSLab.DataSource.ITradeSource2.ChangeOrder(TSLab.DataSource.OrderInfo,System.Nullable{System.Double},System.Nullable{System.Double},System.Nullable{System.Double},TSLab.DataSource.ICommentInfoWithPortfolio,System.Nullable{System.DateTime},TSLab.DataSource.OrderParameters)">
+            <summary>
+            Change order
+            </summary>
+            <param name="order">order</param>
+            <param name="newPrice">new price (can be null)</param>
+            <param name="slippage">price slippage in percent</param>
+            <param name="newQuantity">new quantity (can be null)</param>
+            <param name="comment">order comment</param>
+            <param name="endDate">end date of order</param>
+            <param name="parameters">order parameters</param>
+            <returns>transaction new order id, or 0 if fails</returns>
+        </member>
+        <member name="M:TSLab.DataSource.Logging.UnhandledExceptionHandler(System.Object,System.UnhandledExceptionEventArgs)">
+            <devdoc>
+               <para>Logs any unhandled exception through this event handler</para>
+            </devdoc>
+        </member>
+        <member name="M:TSLab.DataSource.Logging.AppDomainUnloadEvent(System.Object,System.EventArgs)">
+            <devdoc>
+               <para>Called when the system is shutting down, used to prevent additional logging post-shutdown</para>
+            </devdoc>
+        </member>
+        <member name="M:TSLab.DataSource.Logging.ValidateSettings(System.Diagnostics.TraceSource,System.Diagnostics.TraceEventType)">
+            <devdoc>
+               <para>Confirms logging is enabled, given current logging settings</para>
+            </devdoc>
+        </member>
+        <member name="T:TSLab.DataSource.NotClearableAttribute">
+            <summary>
+            Данные в локальном и глобальном кеше, которые имеют данный атрибут,
+            не будут очищаться, когда ТСЛаб пытается освободить память.
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.NotClearableContainer`1">
+            <summary>
+            Обертка для размещения в локальном и глобальном кеше особо важных данных,
+            которые должны сохраняться даже если ТСЛаб пытается освободить память.
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.NotClearableContainer">
+            <summary>
+            Обертка для размещения в локальном и глобальном кеше особо важных данных,
+            которые должны сохраняться даже если ТСЛаб пытается освободить память.
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.Order">
+            <summary>
+            Summary description for Order.
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.Id">
+            <summary>
+            Номер заявки из торговой системы
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.Security">
+            <summary>
+            Ссылка на торгуемый актив
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.SecurityName">
+            <summary>
+            Имя торгуемого актива
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.OrderType">
+            <summary>
+            Тип заявки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.IsLimitOrder">
+            <summary>
+            Лимитная заявка?
+            true - если да, false - если заявка условная
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.Date">
+            <summary>
+            Дата создания заявки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.ExpirationDate">
+            <summary>
+            Заявка валидна до
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.Quantity">
+            <summary>
+            Объем заявки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.RestQuantity">
+            <summary>
+            Неисполненный объем заявки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.Status">
+            <summary>
+            Статус заявки
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.IsNotInactive">
+            <summary>
+            Заявка либо активно, либо исполнена, либо отменена клиентом
+            </summary>
+        </member>
+        <member name="M:TSLab.DataSource.Order.CheckActive(TSLab.DataSource.OrderStatus)">
+            <summary>
+            Проверка, что это статус является активным
+            </summary>
+            <param name="status"></param>
+            <returns></returns>
+        </member>
+        <member name="M:TSLab.DataSource.Order.CheckExecuted(TSLab.DataSource.OrderStatus)">
+            <summary>
+            Проверка что статус соотвестсвует выполненному
+            </summary>
+            <param name="newStatus"></param>
+            <returns></returns>
+        </member>
+        <member name="P:TSLab.DataSource.Order.IsActive">
+            <summary>
+            Заявка активная?
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Order.IsExecuted">
+            <summary>
+            Заявка выполнена?
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.OrderComparer">
+            <summary>
+            Order sorter
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.OrderInfo">
+            <summary>
+            Order information related portfolio
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.InternalId">
+            <summary>
+            Внутренний номер заявки из торговой системы
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.TransitiveId">
+            <summary>
+            Внутренний номер транзакции из торговый системы
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.SessionId">
+            <summary>
+            Внутренний номер сессии из торговой системы
+            Заявки с большим значением сессии идут, как замещающие
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.Account">
+            <summary>
+            Объект счета
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.AccountCode">
+            <summary>
+            Айди счета
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.AccountName">
+            <summary>
+            Расшифровка счета
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.OrderInfo.PriceId">
+            <summary>
+            Хеш-код цены заявки
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.OrderType">
+            <summary>
+            \~english Specifies the type of order. \~russian Описывает типы заявок.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Market">
+            <summary>
+            \~english buy/sell by market) \~russian Купить/продать по рынку.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Limit">
+            <summary>
+            \~english buy/sell by limited price. \~russian Купить/продать по заявленной цене.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Fall">
+            <summary>
+            \~english buy/sell if price lesser or equals. \~russian Купить/продать если цена станет меньше либо равна заданной.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Growth">
+            <summary>
+            \~english buy/sell if price greater or equals. \~russian Купить/продать если цена станет больше либо равна заданной.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Unknown">
+            <summary>
+            \~english Unknown type of order. \~russian Неизвестный тип заявки.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.TrailingStop">
+            <summary>
+            \~english Trailing stop. \~russian Скользящий стоп.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.CombinationStop">
+            <summary>
+            \~english Combination stop. \~russian Комбинированный стоп.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.RelatedOrder">
+            <summary>
+            \~english Related order. \~russian Связанная заявка.
+            </summary>
+        </member>
+        <member name="F:TSLab.DataSource.OrderType.Fictitious">
+            <summary>
+            \~english fictitious order (the order haven't presented). \~russian Фиктивная заявка (заявка не существовала).
+            </summary>
+        </member>
+        <member name="T:TSLab.DataSource.Security">
+            <summary>
+            Security (Paper, Active) description
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Id">
+            <summary>
+            Security Id
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Name">
+            <summary>
+            Security Name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.FullName">
+            <summary>
+            Security FullName
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Comment">
+            <summary>
+            Security Comment
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Currency">
+            <summary>
+            Security Currency
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.TradePlace">
+            <summary>
+            TradePlace
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.DSName">
+            <summary>
+            Data Source Name
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.LotSize">
+            <summary>
+            Lot size (Размер лота)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.LotTick">
+            <summary>
+            Lot tick (1 by default) (Шаг лота)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Margin">
+            <summary>
+            Margin
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Decimals">
+            <summary>
+            Decimals after point (Знаков после запятов в цене)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Tick">
+            <summary>
+            Minimal price increment value (aka 'price step') (Шаг цены)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Expired">
+            <summary>
+            Expired or not
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Slip">
+            <summary>
+            The trade slip
+            TODO: may be it should be moved to another place
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.IsMoney">
+            <summary>
+            True if the security is a money active
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.ActiveType">
+            <summary>
+            Type of active
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.BaseSecurity">
+            <summary>
+            Underlying Asset (for options)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.Strike">
+            <summary>
+            Option strike
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.Security.ExpirationDate">
+            <summary>
+            Expiration date (if possible)
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeTaxInfo.BrokerTax">
+            <summary>
+            The broker commission
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeTaxInfo.StockTax">
+            <summary>
+            The stock commission
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.OrderId">
+            <summary>
+            Order number
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.Account">
+            <summary>
+            Account where trade was processed
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.IsBuy">
+            <summary>
+            Is buy or sell
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.IsRestored">
+            <summary>
+            True if restored from file cache
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.Commission">
+            <summary>
+            Trade commission
+            </summary>
+        </member>
+        <member name="P:TSLab.DataSource.TradeWithOwner.CommissionCurrency">
+            <summary>
+            Commission currency
+            </summary>
+        </member>
+    </members>
+</doc>
